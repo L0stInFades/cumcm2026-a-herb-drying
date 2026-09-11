@@ -136,7 +136,8 @@ else:
     rows = []
     for m in sorted(run.glob("*/manifest.json")):
         d = json.loads(m.read_text())
-        rows.append((d["stage"], d["status"], d.get("duration_s"), d.get("outputs_digest", "")[:12], len(d.get("outputs", {})), (d.get("error") or {}).get("message", "")[:80]))
+        err = (d.get("error") or {}).get("message", "")[:80]
+        rows.append((d["stage"], d["status"], d.get("duration_s"), d.get("outputs_digest", "")[:12], len(d.get("outputs", {})), err))
     print(f"{'stage':14s} {'status':10s} {'seconds':>9s} {'digest':12s} {'files':>5s}  error")
     for r in rows:
         print(f"{r[0]:14s} {r[1]:10s} {str(r[2]):>9s} {r[3]:12s} {r[4]:5d}  {r[5]}")
@@ -190,7 +191,8 @@ def verify_dir(root: Path) -> int:
                 bad.append(f"sha256 mismatch {rel}")
         status = "OK " if not bad else "BAD"
         print(
-            f"[{status}] {data.get('stage'):14s} {data.get('status'):10s} files={len(data.get('outputs', {}))} {stage_dir}"
+            f"[{status}] {data.get('stage'):14s} {data.get('status'):10s} "
+            f"files={len(data.get('outputs', {}))} {stage_dir}"
         )
         for b in bad:
             print("      " + b)

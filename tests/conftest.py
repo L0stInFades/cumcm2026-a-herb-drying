@@ -27,7 +27,8 @@ def tmp_repo(tmp_path: Path) -> Path:
     (tmp_path / "configs").mkdir()
     (tmp_path / "configs" / "default.toml").write_text("[run]\nseed = 7\n[paper]\nsources = []\n", encoding="utf-8")
     (tmp_path / "configs" / "project.json").write_text(
-        '{"letter": "T", "package": "t", "problem_pdf": "T.pdf", "attachments_dir": "att", "templates_dir": "att/tpl", "result_files": []}',
+        '{"letter": "T", "package": "t", "problem_pdf": "T.pdf", "attachments_dir": "att", '
+        '"templates_dir": "att/tpl", "result_files": []}',
         encoding="utf-8",
     )
     (tmp_path / "att" / "tpl").mkdir(parents=True)

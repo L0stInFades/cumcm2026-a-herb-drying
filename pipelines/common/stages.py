@@ -295,7 +295,8 @@ def paper(ctx: StageContext) -> dict[str, Any]:
         "\\toprule 阶段 & 状态 & 用时/s & 输出摘要 (SHA-256 前 12 位) \\\\ \\midrule \\endhead \\bottomrule \\endfoot",
     ]
     repro += [
-        f"\\texttt{{{tex_escape(r['stage'])}}} & {r['status']} & {r['duration_s'] or 0:.1f} & \\texttt{{{r['outputs_digest'][:12]}}} \\\\"
+        f"\\texttt{{{tex_escape(r['stage'])}}} & {r['status']} & {r['duration_s'] or 0:.1f} & "
+        f"\\texttt{{{r['outputs_digest'][:12]}}} \\\\"
         for r in stage_rows
     ]
     repro.append("\\end{longtable}")
@@ -429,7 +430,8 @@ def _reproduce_md(ctx: StageContext) -> str:
         "本目录内所有结果均由 Modal 云端按下列阶段生成；本地只提交任务、下载和核对 SHA-256。",
         "",
         f"- 代码版本：git `{code_ref.get('git_sha', '')}`（分支 `{code_ref.get('branch', '')}`）",
-        f"- 运行环境：Python {manifest.get('runtime', {}).get('python', '')}，{manifest.get('runtime', {}).get('platform', '')}",
+        f"- 运行环境：Python {manifest.get('runtime', {}).get('python', '')}，"
+        f"{manifest.get('runtime', {}).get('platform', '')}",
         "- 依赖版本：" + ", ".join(f"{k}=={v}" for k, v in sorted(packages.items())),
         "",
         "## 阶段",
@@ -438,7 +440,8 @@ def _reproduce_md(ctx: StageContext) -> str:
         "|---|---|---:|---|---|",
     ]
     lines += [
-        f"| {r['stage']} | {r['status']} | {r['duration_s'] or 0:.1f} | `{r['outputs_digest'][:16]}` | `{r['modal_task_id'] or ''}` |"
+        f"| {r['stage']} | {r['status']} | {r['duration_s'] or 0:.1f} | `{r['outputs_digest'][:16]}` | "
+        f"`{r['modal_task_id'] or ''}` |"
         for r in rows
     ]
     lines += [

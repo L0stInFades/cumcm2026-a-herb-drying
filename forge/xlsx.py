@@ -16,7 +16,7 @@ BIG_SHEET_CELLS = 300_000
 
 def read_sheets(path: Path, header: int | None = 0) -> dict[str, pd.DataFrame]:
     with pd.ExcelFile(path) as xf:
-        return {name: xf.parse(name, header=header) for name in xf.sheet_names}
+        return {str(name): xf.parse(name, header=header) for name in xf.sheet_names}
 
 
 def sheet_headers(path: Path) -> dict[str, list[Any]]:
@@ -74,7 +74,7 @@ def write_result(
             ws = wb.create_sheet(name)
             if name in materialised:
                 header, rows = materialised[name]
-                full_header = [a1[name]] + list(header[1:])
+                full_header = [a1[name], *header[1:]]
                 ws.append(full_header)
                 for row in rows:
                     ws.append([_clean(v, decimals) for v in row])
@@ -90,7 +90,7 @@ def write_result(
             for row in ws.iter_rows():
                 for cell in row:
                     cell.value = None
-            full_header = [a1[name]] + list(header[1:])
+            full_header = [a1[name], *header[1:]]
             for j, value in enumerate(full_header, start=1):
                 ws.cell(row=1, column=j, value=_clean(value, None))
             for i, row in enumerate(rows, start=2):
@@ -143,7 +143,8 @@ def check_workbook(path: Path, contract: WorkbookContract, template: Path) -> di
             continue
         ws = wb[sc.name]
         rows = ws.iter_rows(values_only=True)
-        header: list[Any] = list(next(rows, ()))
+        first = next(rows, None)
+        header: list[Any] = list(first) if first is not None else []
         while header and header[-1] is None:
             header.pop()
         tpl = tpl_headers.get(sc.name)
