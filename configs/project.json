@@ -1,0 +1,18 @@
+{
+  "letter": "A",
+  "package": "a",
+  "slug": "herb-drying",
+  "title": "药材的烘干问题",
+  "app": "cumcm2026-a-herb-drying",
+  "volume": "cumcm2026-a-artifacts",
+  "problem_pdf": "A题.pdf",
+  "attachments_dir": "附件",
+  "templates_dir": "附件/附件3",
+  "result_files": [
+    "result1.xlsx",
+    "result2.xlsx",
+    "result3.xlsx",
+    "result4.xlsx"
+  ],
+  "github_repo": "cumcm2026-a-herb-drying"
+}
