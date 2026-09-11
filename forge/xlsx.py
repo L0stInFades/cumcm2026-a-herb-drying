@@ -80,8 +80,8 @@ def write_result(
                     ws.append([_clean(v, decimals) for v in row])
                 stats[name] = {"rows": len(rows), "cols": len(full_header)}
             else:
-                for row in template_wb[name].iter_rows(values_only=True):
-                    ws.append(list(row))
+                for tpl_row in template_wb[name].iter_rows(values_only=True):
+                    ws.append(list(tpl_row))
         wb.save(out)
     else:
         wb = template_wb
