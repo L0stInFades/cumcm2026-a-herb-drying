@@ -23,8 +23,10 @@ def sheet_headers(path: Path) -> dict[str, list[Any]]:
     wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
     out: dict[str, list[Any]] = {}
     for ws in wb.worksheets:
-        row = next(ws.iter_rows(min_row=1, max_row=1, values_only=True), ())
-        out[str(ws.title)] = list(row)
+        row = list(next(ws.iter_rows(min_row=1, max_row=1, values_only=True), ()))
+        while row and row[-1] is None:
+            row.pop()
+        out[str(ws.title)] = row
     wb.close()
     return out
 
@@ -86,10 +88,9 @@ def write_result(
     else:
         wb = template_wb
         for name, (header, rows) in materialised.items():
-            ws = wb[name]
-            for row in ws.iter_rows():
-                for cell in row:
-                    cell.value = None
+            index = wb.sheetnames.index(name)
+            wb.remove(wb[name])
+            ws = wb.create_sheet(name, index)  # fresh sheet: no stale template cells or dimensions
             full_header = [a1[name], *header[1:]]
             for j, value in enumerate(full_header, start=1):
                 ws.cell(row=1, column=j, value=_clean(value, None))
