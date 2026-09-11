@@ -18,7 +18,7 @@ from forge import packaging, pdfqa, xlsx
 from forge.context import StageContext
 from forge.hashing import hash_tree, sha256_file
 from forge.runner import stage
-from forge.tex import aux_page, compile_tex, tex_escape
+from forge.tex import aux_page, compile_tex, tex_escape, tex_path
 
 PLANNED_STAGE_FILES = {
     "lint": ["ruff_check.txt", "ruff_format.txt", "mypy.txt", "lint_report.json", "manifest.json", "events.jsonl"],
@@ -273,7 +273,7 @@ def paper(ctx: StageContext) -> dict[str, Any]:
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(src, target)
         language = {".py": "Python", ".tex": "[LaTeX]TeX"}.get(src.suffix, "{}")
-        listing.append(f"\\needspace{{6\\baselineskip}}\\subsection*{{\\texttt{{{tex_escape(rel)}}}}}")
+        listing.append(f"\\needspace{{6\\baselineskip}}\\subsection*{{{tex_path(rel)}}}")
         listing.append(f"\\lstinputlisting[language={language}]{{code/{rel}}}")
     (generated / "code_listing.tex").write_text("\n".join(listing) + "\n", encoding="utf-8")
 
@@ -283,7 +283,7 @@ def paper(ctx: StageContext) -> dict[str, Any]:
         "\\begin{longtable}{@{}p{0.64\\linewidth}p{0.32\\linewidth}@{}}",
         "\\toprule 文件 & 说明 \\\\ \\midrule \\endhead \\bottomrule \\endfoot",
     ]
-    rows += [f"\\texttt{{{tex_escape(name)}}} & {tex_escape(_describe(name))} \\\\" for name, _ in members]
+    rows += [f"{tex_path(name)} & {tex_escape(_describe(name))} \\\\" for name, _ in members]
     rows.append("\\end{longtable}")
     (generated / "support_files.tex").write_text("\n".join(rows) + "\n", encoding="utf-8")
     ctx.write_json("support_members.json", [name for name, _ in members])
