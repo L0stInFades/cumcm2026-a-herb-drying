@@ -45,6 +45,12 @@ MEMBER_DESCRIPTIONS = (
     (r"manifest\.json$", "阶段清单（输入输出散列、环境、参数）"),
     (r"events\.jsonl$", "结构化运行日志"),
     (r"^AI工具使用详情\.pdf$", "AI 工具使用详情"),
+    (r"^AI_USAGE\.md$", "AI 工具使用记录（源文件）"),
+    (r"^Makefile$", "本地快捷命令（只提交云端任务）"),
+    (r"^pyproject\.toml$", "项目元数据与静态检查配置"),
+    (r"^README\.md$", "仓库说明与复现入口"),
+    (r"^CHANGELOG\.md$", "变更记录"),
+    (r"^UNLICENSE$", "公有领域声明（Unlicense）"),
     (r"^REPRODUCE\.md$", "复现说明"),
     (r"^MANIFEST\.json$", "支撑材料成员清单与 SHA-256"),
 )
