@@ -235,6 +235,32 @@ def cmd_wait(ns: argparse.Namespace) -> int:
     return _sh([interpreter, "-c", code]).returncode
 
 
+def cmd_fmt(ns: argparse.Namespace) -> int:
+    """Format in the cloud, then copy the exported files back into the working tree."""
+    run_id = resolve_run_id(ns.run_id, create=False)
+    params = {"code_ref": git_ref(), "size": "small"}
+    rc = modal_run(["--stage", "fmt", "--run-id", run_id, "--params", json.dumps(params), "--force"])
+    if rc != 0:
+        return rc
+    dest = REPO / "artifacts" / "runs" / run_id / "fmt"
+    shutil.rmtree(dest, ignore_errors=True)
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    rc = _sh([MODAL, "volume", "get", "--force", PROJECT["volume"], f"runs/{run_id}/fmt", str(dest)]).returncode
+    if rc != 0:
+        return rc
+    files = dest / "files"
+    changed = sorted(p for p in files.rglob("*") if p.is_file()) if files.exists() else []
+    for src in changed:
+        rel = src.relative_to(files)
+        target = REPO / rel
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(src, target)
+        print(f"updated {rel}")
+    report = json.loads((dest / "fmt_report.json").read_text(encoding="utf-8"))
+    print(f"{len(changed)} files formatted; remaining ruff findings: {report.get('remaining')}")
+    return 0
+
+
 def cmd_new_run(_: argparse.Namespace) -> int:
     run_id = new_run_id()
     remember(run_id)
@@ -297,6 +323,10 @@ def build_parser() -> argparse.ArgumentParser:
     w = sub.add_parser("wait", help="block on a spawned function call id and print its result")
     w.add_argument("call_id")
     w.set_defaults(fn=cmd_wait)
+
+    f = sub.add_parser("fmt", help="ruff --fix + format in the cloud and copy the results back")
+    f.add_argument("--run-id")
+    f.set_defaults(fn=cmd_fmt)
 
     sub.add_parser("new-run", help="mint a run id").set_defaults(fn=cmd_new_run)
     return p

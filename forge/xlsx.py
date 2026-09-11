@@ -24,7 +24,7 @@ def sheet_headers(path: Path) -> dict[str, list[Any]]:
     out: dict[str, list[Any]] = {}
     for ws in wb.worksheets:
         row = next(ws.iter_rows(min_row=1, max_row=1, values_only=True), ())
-        out[ws.title] = list(row)
+        out[str(ws.title)] = list(row)
     wb.close()
     return out
 
@@ -143,7 +143,7 @@ def check_workbook(path: Path, contract: WorkbookContract, template: Path) -> di
             continue
         ws = wb[sc.name]
         rows = ws.iter_rows(values_only=True)
-        header = list(next(rows, ()))
+        header: list[Any] = list(next(rows, ()))
         while header and header[-1] is None:
             header.pop()
         tpl = tpl_headers.get(sc.name)

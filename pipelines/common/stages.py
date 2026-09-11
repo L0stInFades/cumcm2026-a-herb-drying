@@ -16,7 +16,7 @@ from typing import Any
 
 from forge import packaging, pdfqa, xlsx
 from forge.context import StageContext
-from forge.hashing import sha256_file
+from forge.hashing import hash_tree, sha256_file
 from forge.runner import stage
 from forge.tex import aux_page, compile_tex, tex_escape
 
@@ -415,3 +415,26 @@ def release(ctx: StageContext) -> dict[str, Any]:
     ctx.out("RELEASE_NOTES.md").write_text("\n".join(notes) + "\n", encoding="utf-8")
     ctx.write_json("release_manifest.json", manifest)
     return {"files": len(files), "paper_bytes": manifest["files"][str(ctx.cfg("release.paper_name", "论文.pdf"))]["bytes"]}
+
+
+FMT_IGNORE = (".git", "artifacts", "releases", "__pycache__", ".forge", ".DS_Store", ".mypy_cache", ".ruff_cache")
+
+
+@stage("fmt", description="ruff --fix and ruff format in the cloud; changed files are exported for a local copy-back")
+def fmt(ctx: StageContext) -> dict[str, Any]:
+    work = Path("/tmp/fmt")
+    shutil.rmtree(work, ignore_errors=True)
+    shutil.copytree(ctx.repo, work, ignore=shutil.ignore_patterns(*FMT_IGNORE, "*.pyc"))
+    before = hash_tree(work, ignore=FMT_IGNORE)
+    fix = subprocess.run(["ruff", "check", "--fix", "--no-cache", "--output-format", "concise", "."],
+                         cwd=work, capture_output=True, text=True, check=False)
+    form = subprocess.run(["ruff", "format", "--no-cache", "."], cwd=work, capture_output=True, text=True, check=False)
+    after = hash_tree(work, ignore=FMT_IGNORE)
+    changed = sorted(rel for rel in after if rel not in before or after[rel]["sha256"] != before[rel]["sha256"])
+    for rel in changed:
+        shutil.copy2(work / rel, ctx.out("files", rel))
+    ctx.out("ruff_fix.txt").write_text(fix.stdout + fix.stderr, encoding="utf-8")
+    ctx.out("ruff_format.txt").write_text(form.stdout + form.stderr, encoding="utf-8")
+    ctx.write_json("fmt_report.json", {"changed": changed, "remaining": fix.stdout.strip().splitlines()[-1:]})
+    ctx.log.info("fmt.done", changed=len(changed), remaining=fix.stdout.strip().splitlines()[-1:])
+    return {"changed": len(changed)}

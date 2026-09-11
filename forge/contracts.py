@@ -37,7 +37,7 @@ class FrameContract:
 
 def normalise_columns(df: pd.DataFrame) -> pd.DataFrame:
     out = df.copy()
-    out.columns = [str(c).strip() for c in out.columns]
+    out.columns = pd.Index([str(c).strip() for c in out.columns])
     return out
 
 
