@@ -119,6 +119,10 @@ class Chamber:
     def air_humidity(self, t: Any) -> Any:
         return self.hum_scale * np.interp(t, self.t, self.hum, right=self.hum_plateau)
 
+    def knots(self) -> np.ndarray:
+        """Instants where the forcing is not smooth (sample times incl. the switch to the plateau)."""
+        return self.t[1:] if len(self.t) > 2 else np.array([])
+
     def describe(self) -> dict[str, Any]:
         return {
             "samples": len(self.t),
@@ -158,6 +162,10 @@ class Radius:
         if self.is_constant:
             return np.full_like(np.asarray(t, dtype=float), self.r[0]) if np.ndim(t) else float(self.r[0])
         return self._pchip(np.clip(t, self._t0, self._t1))
+
+    def knots(self) -> np.ndarray:
+        """PCHIP knots (curvature jumps) including the switch to the constant tail."""
+        return np.array([]) if self.is_constant else self.t[1:]
 
     def rate(self, t: Any) -> Any:
         if self.is_constant:

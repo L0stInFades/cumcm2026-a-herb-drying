@@ -195,6 +195,73 @@ def _dry_event(n1: int, target: float) -> Any:
     return event
 
 
+def integrate_piecewise(
+    fun: Any,
+    y0: np.ndarray,
+    t_out: np.ndarray,
+    breakpoints: np.ndarray,
+    *,
+    method: str,
+    rtol: float,
+    atol: float,
+    jac_sparsity: Any,
+    event: Any = None,
+    max_step: float = np.inf,
+) -> tuple[np.ndarray, dict[str, Any], float | None, np.ndarray | None]:
+    """Integrate y' = fun(t, y) from t = 0 to t_out[-1], restarting the integrator at every breakpoint.
+
+    The chamber history is piecewise linear (slope jumps every 60 s) and the radius is a PCHIP spline
+    (curvature jumps every 1800 s); a multistep method that steps across such kinks loses accuracy in a
+    way that is not controlled by the tolerance. Restarting at the kinks keeps the forcing smooth inside
+    every segment. Returns the states at ``t_out`` (which must start at 0), integrator statistics, and
+    the first root of ``event`` with the state there (if an event is given and fires).
+    """
+    t_out = np.asarray(t_out, dtype=float)
+    t_end = float(t_out[-1])
+    stops = np.unique(np.concatenate([np.asarray(breakpoints, dtype=float), [t_end]]))
+    stops = stops[(stops > 0.0) & (stops <= t_end)]
+    y = np.asarray(y0, dtype=float)
+    states = np.empty((len(t_out), len(y)))
+    states[0] = y
+    filled = 1
+    t_prev = 0.0
+    stats: dict[str, Any] = {"nfev": 0, "njev": 0, "nlu": 0, "segments": len(stops)}
+    event_t: float | None = None
+    event_y: np.ndarray | None = None
+    for t_next in stops:
+        pts = t_out[(t_out > t_prev) & (t_out <= t_next)]
+        t_eval = pts if len(pts) and pts[-1] == t_next else np.concatenate([pts, [t_next]])
+        watching = event is not None and event_t is None
+        result = solve_ivp(
+            fun,
+            (t_prev, float(t_next)),
+            y,
+            method=method,
+            t_eval=t_eval,
+            rtol=rtol,
+            atol=atol,
+            jac_sparsity=jac_sparsity,
+            dense_output=watching,
+            events=[event] if watching else None,
+            max_step=max_step,
+        )
+        if not result.success:
+            raise RuntimeError(f"solve_ivp failed on [{t_prev}, {t_next}]: {result.message}")
+        k = len(pts)
+        states[filled : filled + k] = result.y[:, :k].T
+        filled += k
+        y = result.y[:, -1]
+        for key in ("nfev", "njev", "nlu"):
+            stats[key] += int(getattr(result, key))
+        if watching and result.t_events and len(result.t_events[0]):
+            event_t = float(result.t_events[0][0])
+            event_y = np.asarray(result.sol(event_t), dtype=float)
+        t_prev = float(t_next)
+    if filled != len(t_out):
+        raise RuntimeError("output instants were not all visited (t_out must be strictly increasing from 0)")
+    return states, stats, event_t, event_y
+
+
 def solve(
     spec: ProblemSpec,
     n: int,
@@ -214,53 +281,37 @@ def solve(
     if t_out[0] != 0.0 or np.any(np.diff(t_out) <= 0):
         raise ValueError("t_out must start at 0 and be strictly increasing")
     y0 = np.concatenate([np.full(grid.n + 1, spec.t_init), np.full(grid.n + 1, spec.c_init), [0.0, 0.0]])
-    events = [_dry_event(grid.n + 1, target)] if detect_dry else None
-    result = solve_ivp(
+    breakpoints = np.concatenate([spec.chamber.knots(), spec.radius.knots()])
+    states, stats, t_dry, state = integrate_piecewise(
         system,
-        (0.0, float(t_out[-1])),
         y0,
+        t_out,
+        breakpoints,
         method=method,
-        t_eval=t_out,
         rtol=rtol,
         atol=atol,
         jac_sparsity=system.jacobian_sparsity(),
-        dense_output=detect_dry,
-        events=events,
+        event=_dry_event(grid.n + 1, target) if detect_dry else None,
         max_step=max_step,
     )
-    if not result.success:
-        raise RuntimeError(f"solve_ivp failed: {result.message}")
     n1 = grid.n + 1
-    temp = result.y[:n1].T.copy()
-    moist = result.y[n1 : 2 * n1].T.copy()
     radius = np.asarray(spec.radius.value(t_out), dtype=float)
     sol = Solution(
         t=t_out,
         xi=grid.xi,
-        temp=temp,
-        moist=moist,
+        temp=states[:, :n1].copy(),
+        moist=states[:, n1 : 2 * n1].copy(),
         radius=radius,
         air_temp=np.asarray(spec.chamber.air_temperature(t_out), dtype=float),
         air_hum=np.asarray(spec.chamber.air_humidity(t_out), dtype=float),
-        stats={
-            "method": method,
-            "rtol": rtol,
-            "atol": atol,
-            "n_intervals": n,
-            "nfev": int(result.nfev),
-            "njev": int(result.njev),
-            "nlu": int(result.nlu),
-            "message": str(result.message),
-        },
-        cum_moist_loss=result.y[2 * n1].copy(),
-        cum_heat_loss=result.y[2 * n1 + 1].copy(),
+        stats={"method": method, "rtol": rtol, "atol": atol, "n_intervals": n, **stats},
+        cum_moist_loss=states[:, 2 * n1].copy(),
+        cum_heat_loss=states[:, 2 * n1 + 1].copy(),
     )
-    if detect_dry and result.t_events and len(result.t_events[0]):
-        t_dry = float(result.t_events[0][0])
-        state = result.sol(t_dry)
+    if t_dry is not None and state is not None:
         sol.t_dry = t_dry
-        sol.dry_temp = np.asarray(state[:n1], dtype=float)
-        sol.dry_profile = np.asarray(state[n1 : 2 * n1], dtype=float)
+        sol.dry_temp = state[:n1].copy()
+        sol.dry_profile = state[n1 : 2 * n1].copy()
     return sol
 
 

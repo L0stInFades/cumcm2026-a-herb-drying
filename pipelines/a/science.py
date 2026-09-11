@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+import re
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import replace
 from typing import Any
@@ -142,6 +143,15 @@ def _parallel(ctx: StageContext, jobs: list[dict[str, Any]]) -> list[dict[str, A
             results.append(res)
             ctx.log.info("parallel.progress", done=i + 1, total=len(jobs), label=res["label"])
     return results
+
+
+def _tag(text: str) -> str:
+    """Letters-only CamelCase key fragment for ctx.number (digits are spelled out)."""
+    out = text
+    for old, new in (("q1", "Qone"), ("q2", "Qtwo"), ("q3", "Qthree"), ("q4", "Qfour"), ("D0", "Dzero")):
+        out = out.replace(old, new)
+    parts = re.split(r"[^A-Za-z]+", out)
+    return "".join(p[:1].upper() + p[1:] for p in parts if p)
 
 
 def _table_times_hours(t_dry: float, step_h: float = 6.0) -> np.ndarray:
@@ -458,9 +468,9 @@ def convergence(ctx: StageContext) -> dict[str, Any]:
     # time-tolerance and integrator cross-checks on the production grid (problem 3, the longest run)
     n_prod = 20 * 2**refine
     for label, extra in (
-        ("tol:strict", {"rtol": 1e-9, "atol": 1e-11}),
+        ("tol:strict", {"rtol": 1e-10, "atol": 1e-12}),
         ("tol:radau", {"method": "Radau"}),
-        ("tol:loose", {"rtol": 1e-5, "atol": 1e-7}),
+        ("tol:loose", {"rtol": 1e-7, "atol": 1e-9}),
     ):
         jobs.append(
             {
@@ -520,11 +530,11 @@ def convergence(ctx: StageContext) -> dict[str, Any]:
     ctx.write_json("raw_t_dry.json", {k: v.get("t_dry") for k, v in results.items() if "t_dry" in v})
     orders = {}
     for key, rows in report["grid"].items():
-        if key.endswith("_t_dry"):
+        if key.endswith(("_t_dry", "_times_h")):
             continue
         vals = [r["observed_order"] for r in rows if r.get("observed_order") is not None]
         orders[key] = vals[-1] if vals else None
-        tag = "".join(part.capitalize() for part in key.split("_"))
+        tag = _tag(key)
         if vals:
             ctx.number(f"ConvOrder{tag}", vals[-1], ".2f")
         if refine < levels - 1:
@@ -771,9 +781,9 @@ def sensitivity(ctx: StageContext) -> dict[str, Any]:
         "sensitivity.json", {"factors": factors, "table": table, "elasticities": elasticities, "alternatives": alt_rows}
     )
     for name, e in elasticities.items():
-        ctx.number("Elas" + name.replace("_", ""), e, ".3f")
+        ctx.number("Elas" + _tag(name), e, ".3f")
     for row in alt_rows:
-        key = "Alt" + "".join(part.capitalize() for part in row["case"].split("_"))
+        key = "Alt" + _tag(row["case"])
         ctx.number(key + "Hours", row["t_dry_h"], ".2f")
         ctx.number(key + "Pct", row["diff_pct"], ".2f")
     return {"jobs": len(jobs), "elasticities": elasticities}

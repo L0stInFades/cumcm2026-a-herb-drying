@@ -15,7 +15,6 @@ from typing import Any
 
 import numpy as np
 from scipy import sparse
-from scipy.integrate import solve_ivp
 from scipy.optimize import brentq
 from scipy.special import j0, j1, jn_zeros
 
@@ -162,7 +161,7 @@ def extremum_checks(
         "moist_within_bounds": bool(moist.min() >= c_lo - tol and moist.max() <= c_hi + tol),
         "moist_monotone_in_r": bool(np.all(dc <= 1e-8)),
         "moist_max_positive_slope": float(max(dc.max(), 0.0)),
-        "moist_argmax_is_centre": bool(np.all(np.argmax(moist, axis=1) == 0)),
+        "moist_argmax_is_centre": bool(np.all(moist.max(axis=1) - moist[:, 0] <= 1e-9)),  # ties up to roundoff
     }
 
 
@@ -310,6 +309,7 @@ def solve_axisymmetric(
     rtol: float = 1e-7,
     atol: float = 1e-9,
     detect_dry: bool = False,
+    method: str = "BDF",
 ) -> dict[str, Any]:
     system = AxisymmetricSystem(props, chamber, nr, nz, end_bc)
     y0 = np.concatenate([np.full(system.m, t_init), np.full(system.m, c_init)])
@@ -319,30 +319,30 @@ def solve_axisymmetric(
 
     event.terminal = False  # type: ignore[attr-defined]
     event.direction = -1  # type: ignore[attr-defined]
-    result = solve_ivp(
+    from pipelines.a.solver import integrate_piecewise  # generic ODE driver only (not the radial scheme)
+
+    states, stats, t_dry, _ = integrate_piecewise(
         system,
-        (0.0, float(t_out[-1])),
         y0,
-        method="BDF",
-        t_eval=t_out,
+        np.asarray(t_out, dtype=float),
+        chamber.knots(),
+        method=method,
         rtol=rtol,
         atol=atol,
         jac_sparsity=system.jacobian_sparsity(),
-        events=[event] if detect_dry else None,
+        event=event if detect_dry else None,
     )
-    if not result.success:
-        raise RuntimeError(f"2-D solve failed: {result.message}")
-    temp = result.y[: system.m].T.reshape(len(t_out), *system.shape)
-    moist = result.y[system.m :].T.reshape(len(t_out), *system.shape)
+    temp = states[:, : system.m].reshape(len(t_out), *system.shape)
+    moist = states[:, system.m :].reshape(len(t_out), *system.shape)
     out: dict[str, Any] = {
         "t": np.asarray(t_out, dtype=float),
         "r": np.linspace(0.0, R0, nr + 1),
         "z": np.linspace(0.0, LENGTH / 2.0, nz + 1),
         "temp": temp,
         "moist": moist,
-        "nfev": int(result.nfev),
-        "nlu": int(result.nlu),
+        "nfev": stats["nfev"],
+        "nlu": stats["nlu"],
     }
-    if detect_dry and result.t_events and len(result.t_events[0]):
-        out["t_dry"] = float(result.t_events[0][0])
+    if t_dry is not None:
+        out["t_dry"] = t_dry
     return out

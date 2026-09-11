@@ -16,7 +16,7 @@ import pandas as pd
 from forge import plotting
 from forge.context import StageContext
 from forge.runner import stage
-from pipelines.a.physics import APPENDIX2, APPENDIX3, APPENDIX4, C_TARGET
+from pipelines.a.physics import APPENDIX2, APPENDIX3, APPENDIX4, C_TARGET, Radius
 
 HOUR = 3600.0
 INK = "#1F2933"
@@ -90,7 +90,9 @@ def figures(ctx: StageContext) -> dict[str, Any]:
     axes[1].legend(frameon=False, loc="lower right")
     t2 = a2["时间"].to_numpy(float) / HOUR
     hist4 = _load(ctx.dep("q4") / "history.json")
-    axes[2].plot(np.asarray(hist4["t"]) / HOUR, hist4["radius_cm"], color=CAT[2], lw=1.2, label="PCHIP 插值 R(t)")
+    radius = Radius.from_series(a2["时间"].to_numpy(float), a2["半径"].to_numpy(float))
+    t_fine = np.linspace(0.0, float(a2["时间"].max()), 2000)
+    axes[2].plot(t_fine / HOUR, np.asarray(radius.value(t_fine)) * 100.0, color=CAT[2], lw=1.2, label="PCHIP 插值 R(t)")
     axes[2].plot(
         t2[::4], a2["半径"].to_numpy(float)[::4], "o", ms=3, color=INK, mfc="white", label="附件 2 样本（每 2 h）"
     )
@@ -327,17 +329,16 @@ def figures(ctx: StageContext) -> dict[str, Any]:
         h = _load(ctx.dep(prob) / "history.json")
         t = np.asarray(h["t"])
         w = np.asarray(h["mean_moist"]) / 2.0
-        flux = np.asarray(h["surface_moist_flux"])
         rad = np.asarray(h["radius_cm"]) / 100.0
-        if np.allclose(rad, rad[0]):
+        cum = np.asarray(h["cum_moist_loss"])  # int hm (C_s - C_air)/R dt accumulated inside the integrator
+        if np.allclose(rad, rad[0]):  # d/dt (R^2 W) = -R hm (C_s - C_air)
             lhs = rad[0] ** 2 * (w - w[0])
-            integrand = -rad[0] * flux
-        else:
+            cum = -(rad[0] ** 2) * cum
+        else:  # Lagrangian: dW/dt = -hm (C_s - C_air)/R
             lhs = w - w[0]
-            integrand = -flux / rad
-        cum = np.concatenate([[0.0], np.cumsum(0.5 * (integrand[1:] + integrand[:-1]) * np.diff(t))])
+            cum = -cum
         res = np.abs(lhs - cum) / max(abs(lhs[-1]), 1e-300)
-        ax.semilogy(t / HOUR, np.maximum(res, 1e-16), color=CAT[j], label=f"问题 {prob[1]}", lw=1.2)
+        ax.semilogy(t / HOUR, np.maximum(res, 1e-17), color=CAT[j], label=f"问题 {prob[1]}", lw=1.2)
     ax.set_xlabel("时间 / h")
     ax.set_ylabel("水分守恒相对残差")
     ax.legend(frameon=False)
@@ -346,7 +347,7 @@ def figures(ctx: StageContext) -> dict[str, Any]:
         fig,
         "fig_conservation",
         index,
-        "离散水分总量变化与表面通量时间积分之差（相对最终失水量），四个问题均在积分容差量级",
+        "离散水分总量变化与积分器内累积的表面通量之差（相对最终失水量）：四个问题均在机器精度量级",
     )
 
     # 11. sensitivity ------------------------------------------------------------------------------

@@ -120,10 +120,10 @@ def test_discrete_moisture_and_energy_balances_hold() -> None:
 def test_moving_boundary_reduces_to_the_fixed_domain_for_constant_radius() -> None:
     chamber = Chamber.constant(50.0, 0.05)
     t_out = np.arange(0.0, 3601.0, 600.0)
-    ref = solve(ProblemSpec(APPENDIX4, chamber, Radius.constant()), 20, t_out)
+    ref = solve(ProblemSpec(APPENDIX4, chamber, Radius.constant()), 20, t_out, rtol=1e-10, atol=1e-12)
     pseudo = Radius(np.array([0.0, 1.0, 2.0]), np.array([R0, R0, R0]), force_interpolant=True)
     for form in ("lagrangian", "eulerian"):
-        test = solve(ProblemSpec(APPENDIX4, chamber, pseudo, formulation=form), 20, t_out)
+        test = solve(ProblemSpec(APPENDIX4, chamber, pseudo, formulation=form), 20, t_out, rtol=1e-10, atol=1e-12)
         assert np.max(np.abs(test.moist - ref.moist)) < 1e-8
         assert np.max(np.abs(test.temp - ref.temp)) < 1e-6
 
@@ -165,6 +165,28 @@ def test_subgrid_and_physical_sampling() -> None:
     out = sample_physical(profile, xi, 0.015, np.array([0.0, 0.0075, 0.015, 0.016]))
     assert out[0] == pytest.approx(1.0) and out[1] == pytest.approx(0.75, abs=1e-9)
     assert out[2] == pytest.approx(0.0, abs=1e-9) and np.isnan(out[3])
+
+
+def test_piecewise_integration_is_exact_for_piecewise_linear_forcing() -> None:
+    """y' = -y + f(t) with f piecewise linear (kinks every 60 s): restarting at the kinks keeps BDF accurate."""
+    from pipelines.a.solver import integrate_piecewise
+
+    knots = np.arange(0.0, 601.0, 60.0)
+    values = np.array([0, 1, 0, 2, 0, 3, 0, 4, 0, 5, 0], dtype=float)
+
+    def fun(t: float, y: np.ndarray) -> np.ndarray:
+        return -y + np.interp(t, knots, values)
+
+    t_out = np.arange(0.0, 601.0, 30.0)
+    states, stats, event_t, _ = integrate_piecewise(
+        fun, np.array([0.0]), t_out, knots[1:], method="BDF", rtol=1e-10, atol=1e-12, jac_sparsity=None
+    )
+    # exact solution: y(t) = int_0^t e^{-(t-s)} f(s) ds, evaluated with a fine trapezoid rule on each segment
+    fine = np.linspace(0.0, 600.0, 600001)
+    f_fine = np.interp(fine, knots, values)
+    exact = [np.trapezoid(np.exp(-(t - fine[fine <= t])) * f_fine[fine <= t], fine[fine <= t]) for t in t_out]
+    assert stats["segments"] == 10 and event_t is None
+    np.testing.assert_allclose(states[:, 0], exact, atol=1e-7)
 
 
 # ---- verifiers ------------------------------------------------------------------------------------

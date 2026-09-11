@@ -243,7 +243,9 @@ def tables(ctx: StageContext) -> dict[str, Any]:
     _write_table(
         ctx,
         "tab_time_independence",
-        "时间积分无关性（问题 3，生产网格；与 BDF, rtol=1e-7 的差异）",
+        "时间积分无关性（问题 3，生产网格；与生产设置 "
+        f"{ctx.cfg('a.time.method', 'BDF')}, rtol={float(ctx.cfg('a.time.rtol', 1e-9)):.0e}, "
+        f"atol={float(ctx.cfg('a.time.atol', 1e-11)):.0e} 的差异）",
         "tab:time-independence",
         ["积分器与容差", "水分最大差", "$t_{\\mathrm{end}}$ 差/s", "右端项调用次数"],
         rows_t,

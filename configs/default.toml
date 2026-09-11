@@ -45,8 +45,8 @@ convergence_levels = 7     # k = 0 … levels-1 in the convergence study
 
 [a.time]
 method = "BDF"
-rtol = 1e-7
-atol = 1e-9
+rtol = 1e-9
+atol = 1e-11
 
 [a.chamber]
 plateau = "mean_last_hour" # constant-temperature stage after 14400 s (MDR-0003): mean_last_hour | last_sample | nominal
