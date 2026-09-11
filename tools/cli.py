@@ -45,7 +45,11 @@ def git_ref() -> dict:
             return ""
 
     sha = out("rev-parse", "HEAD") or "nogit"
-    return {"git_sha": sha, "branch": out("rev-parse", "--abbrev-ref", "HEAD"), "dirty": bool(out("status", "--porcelain"))}
+    return {
+        "git_sha": sha,
+        "branch": out("rev-parse", "--abbrev-ref", "HEAD"),
+        "dirty": bool(out("status", "--porcelain")),
+    }
 
 
 def new_run_id() -> str:
@@ -88,7 +92,9 @@ def cmd_run(ns: argparse.Namespace) -> int:
     stages = [s for s in ns.stage.split(",") if s]
     run_id = resolve_run_id(ns.run_id, create=ns.new_run)
     params = parse_params(ns.param)
-    params.update({"code_ref": git_ref(), "size": ns.size, "submitted_at": datetime.now().isoformat(timespec="seconds")})
+    params.update(
+        {"code_ref": git_ref(), "size": ns.size, "submitted_at": datetime.now().isoformat(timespec="seconds")}
+    )
     if ns.from_run:
         params["from_run"] = ns.from_run
     if ns.profile:
@@ -111,14 +117,16 @@ def cmd_exec(ns: argparse.Namespace) -> int:
         print("provide --code or --file", file=sys.stderr)
         return 2
     run_id = resolve_run_id(ns.run_id, create=False)
-    return modal_run(["--stage", "exec", "--run-id", run_id, "--params", json.dumps({"code": code}, ensure_ascii=False)])
+    return modal_run(
+        ["--stage", "exec", "--run-id", run_id, "--params", json.dumps({"code": code}, ensure_ascii=False)]
+    )
 
 
 def cmd_provision(_: argparse.Namespace) -> int:
     return modal_run(["--stage", "provision"])
 
 
-STATUS_SNIPPET = r'''
+STATUS_SNIPPET = r"""
 import json
 from pathlib import Path
 run = RUN_DIR
@@ -133,7 +141,7 @@ else:
     for r in rows:
         print(f"{r[0]:14s} {r[1]:10s} {str(r[2]):>9s} {r[3]:12s} {r[4]:5d}  {r[5]}")
     print("run_dir:", run)
-'''
+"""
 
 
 def cmd_status(ns: argparse.Namespace) -> int:
@@ -181,22 +189,33 @@ def verify_dir(root: Path) -> int:
             elif sha256(file) != meta["sha256"]:
                 bad.append(f"sha256 mismatch {rel}")
         status = "OK " if not bad else "BAD"
-        print(f"[{status}] {data.get('stage'):14s} {data.get('status'):10s} files={len(data.get('outputs', {}))} {stage_dir}")
+        print(
+            f"[{status}] {data.get('stage'):14s} {data.get('status'):10s} files={len(data.get('outputs', {}))} {stage_dir}"
+        )
         for b in bad:
             print("      " + b)
         problems += len(bad)
     return 0 if problems == 0 else 1
 
 
+def volume_get(remote: str, local_parent: Path) -> int:
+    """Download a remote directory into ``local_parent/<basename>`` (replacing any previous copy)."""
+    target = local_parent / Path(remote).name
+    shutil.rmtree(target, ignore_errors=True)
+    local_parent.mkdir(parents=True, exist_ok=True)
+    return _sh([MODAL, "volume", "get", "--force", PROJECT["volume"], remote, str(local_parent) + "/"]).returncode
+
+
 def cmd_download(ns: argparse.Namespace) -> int:
     run_id = resolve_run_id(ns.run_id, create=False)
-    remote = f"runs/{run_id}" + (f"/{ns.stage}" if ns.stage else "")
-    dest = REPO / ns.dest / "runs" / run_id / (ns.stage or "")
-    dest.parent.mkdir(parents=True, exist_ok=True)
-    rc = _sh([MODAL, "volume", "get", "--force", PROJECT["volume"], remote, str(dest)]).returncode
+    if ns.stage:
+        remote, parent = f"runs/{run_id}/{ns.stage}", REPO / ns.dest / "runs" / run_id
+    else:
+        remote, parent = f"runs/{run_id}", REPO / ns.dest / "runs"
+    rc = volume_get(remote, parent)
     if rc != 0:
         return rc
-    return verify_dir(dest)
+    return verify_dir(parent / Path(remote).name)
 
 
 def cmd_verify(ns: argparse.Namespace) -> int:
@@ -209,11 +228,12 @@ def cmd_release(ns: argparse.Namespace) -> int:
     if dest.exists() and not ns.force:
         print(f"{dest} exists; pass --force to overwrite", file=sys.stderr)
         return 2
-    shutil.rmtree(dest, ignore_errors=True)
-    dest.mkdir(parents=True)
-    rc = _sh([MODAL, "volume", "get", "--force", PROJECT["volume"], f"runs/{run_id}/release", str(dest)]).returncode
+    staging = REPO / "artifacts" / "release_staging" / run_id
+    rc = volume_get(f"runs/{run_id}/release", staging)
     if rc != 0:
         return rc
+    shutil.rmtree(dest, ignore_errors=True)
+    shutil.copytree(staging / "release", dest)
     manifest = json.loads((dest / "release_manifest.json").read_text(encoding="utf-8"))
     bad = 0
     for name, meta in manifest["files"].items():
@@ -226,7 +246,11 @@ def cmd_release(ns: argparse.Namespace) -> int:
 
 
 def cmd_wait(ns: argparse.Namespace) -> int:
-    interpreter = Path(MODAL).read_text(encoding="utf-8", errors="ignore").splitlines()[0].lstrip("#!").strip() if Path(MODAL).exists() else sys.executable
+    interpreter = (
+        Path(MODAL).read_text(encoding="utf-8", errors="ignore").splitlines()[0].lstrip("#!").strip()
+        if Path(MODAL).exists()
+        else sys.executable
+    )
     code = (
         "import json, modal, sys\n"
         f"call = modal.FunctionCall.from_id({ns.call_id!r})\n"
@@ -243,9 +267,7 @@ def cmd_fmt(ns: argparse.Namespace) -> int:
     if rc != 0:
         return rc
     dest = REPO / "artifacts" / "runs" / run_id / "fmt"
-    shutil.rmtree(dest, ignore_errors=True)
-    dest.parent.mkdir(parents=True, exist_ok=True)
-    rc = _sh([MODAL, "volume", "get", "--force", PROJECT["volume"], f"runs/{run_id}/fmt", str(dest)]).returncode
+    rc = volume_get(f"runs/{run_id}/fmt", dest.parent)
     if rc != 0:
         return rc
     files = dest / "files"

@@ -129,7 +129,7 @@ def check_workbook(path: Path, contract: WorkbookContract, template: Path) -> di
         return {"file": contract.file, "ok": False, "errors": ["file missing"], "sheets": {}}
     try:
         tpl_headers = sheet_headers(template)
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         tpl_headers = {}
         errors.append(f"template unreadable: {exc!r}")
     wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
@@ -182,7 +182,10 @@ def check_workbook(path: Path, contract: WorkbookContract, template: Path) -> di
             errors.append(f"{sc.name}: {bad_decimals} cells with more than {sc.decimals} decimals")
         if bad_text:
             errors.append(f"{sc.name}: {bad_text} empty cells in required text columns")
-        report[sc.name] = {"rows": n, "header": [str(h) for h in header[:6]] + (["…"] if len(header) > 6 else []),
-                           "blank": blank}
+        report[sc.name] = {
+            "rows": n,
+            "header": [str(h) for h in header[:6]] + (["…"] if len(header) > 6 else []),
+            "blank": blank,
+        }
     wb.close()
     return {"file": contract.file, "ok": not errors, "errors": errors, "sheets": report}

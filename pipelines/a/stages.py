@@ -17,6 +17,8 @@ from pipelines.a.contracts import INPUT_CONTRACTS
 from pipelines.common.validation import run_validation
 
 
-@stage("validate", deps=("ingest",), description="Validate the drying-chamber and radius series against their contracts")
+@stage(
+    "validate", deps=("ingest",), description="Validate the drying-chamber and radius series against their contracts"
+)
 def validate(ctx: StageContext) -> dict[str, Any]:
     return run_validation(ctx, INPUT_CONTRACTS)
