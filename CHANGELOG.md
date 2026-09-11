@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+### Added
+- 问题 A 科学阶段：`q1`–`q4`（径向有限体积 + 自适应 BDF，Landau 坐标处理收缩边界）、`convergence`（网格/时间收敛）、`verification`（贝塞尔级数解对照、独立二维轴对称程序交叉检验与端部效应）、`sensitivity`（弹性与备选解释）；`results`（result1–4.xlsx）、`figures`、`tables`。
+- 模块：`pipelines/a/physics.py`（附录物性、烘房条件、半径）、`solver.py`、`verify.py`（与求解器分离的校验器）、`common.py`、`science.py`、`outputs.py`、`figures.py`。
+- MDR-0001 … MDR-0007；`docs/DATA_NOTES.md`；`docs/RESULTS.md`；`tests/unit/test_drying.py`（物理、求解器、校验器的单元/性质测试）。
+- `configs/default.toml` 新增 `[a.*]` 配置段；`paper.sources` 与 `package.stages` 登记新增阶段。
+
 ## [0.1.0] - 2026-09-12
 
 ### Added
