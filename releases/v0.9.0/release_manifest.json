@@ -1,14 +1,14 @@
 {
   "run_id": "20260912-104036-184d092",
   "code_ref": {
-    "git_sha": "e6511f9adb01afde299c6528eeacd309635183de",
+    "git_sha": "426bc62164c1870033c337d1ee1f3086db154e1c",
     "branch": "main",
     "dirty": false
   },
   "files": {
     "论文.pdf": {
-      "sha256": "be2517d6aeffc38f4f4ab4235bdf9f0edee5b6d58dd641d1918587e5520b2d23",
-      "bytes": 1747971
+      "sha256": "7b40cb544af3d36ec46d48871b64ce0200fda1c3f5db5ece3c321c5cd59eeee9",
+      "bytes": 1747972
     },
     "result1.xlsx": {
       "sha256": "d4cb60bcf3fcd5822921a4165de24d5e8a02357bf2a918a079418162545e4e44",
@@ -27,8 +27,8 @@
       "bytes": 238954
     },
     "支撑材料.zip": {
-      "sha256": "8e35986875cc0a9c74a9acc4e4da14e7f6d342bcbd52dca6a73e9abbbf98ae46",
-      "bytes": 12938872
+      "sha256": "19cb8339580a455070896d1165867e232e86c90ba8d7403de25562bb043c58b3",
+      "bytes": 12938848
     },
     "AI工具使用详情.pdf": {
       "sha256": "644d4907a4183ca3e477f73aeee1311d50518faac93f4d9f9183d3f475947d1d",
@@ -36,5 +36,5 @@
     }
   },
   "qa_passed": true,
-  "created_at": "2026-09-12T06:34:02+00:00"
+  "created_at": "2026-09-12T06:37:33+00:00"
 }
