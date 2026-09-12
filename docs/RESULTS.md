@@ -2,7 +2,7 @@
 
 本文件汇总最终云端运行的全部科学结果：每个问题的方法、关键数值、表格/图文件、`ctx.number` 键名、验证结论、局限与备选解释。所有数值均来自 `numbers.json`（论文中用 `\val<Key>` 引用）与 `tables` 阶段生成的 `tables/*.tex`，禁止手抄。
 
-- 最终 run：`20260912-102714-108fa95`（代码 `108fa95`）。
+- 最终 run：`20260912-104036-184d092`（代码 `184d092`）。
 - 阶段：ingest, validate, q1, q2, q3, q4, convergence, verification, sensitivity, extension, results, figures, tables, lint, test, paper, qa（全部 completed；qa 含 `result:*` 契约检查）。
 - 生产网格：Δr = 0.1/2⁵ = 0.003125 cm（641 节点，`\valGridNodes`、`\valGridDrCm`）；时间积分 BDF，rtol=1e-9、atol=1e-11（`\valTimeRtol`、`\valTimeAtol`），在附件 1 的每个样本时刻与附件 2 的每个节点重启（MDR-0004）。
 
@@ -54,7 +54,7 @@
 
 - 贝塞尔级数解对照（常物性、恒定环境）：温度 `\valAnalyticErrTemp`、水分 `\valAnalyticErrMoist`（生产网格）；观测阶 `\valAnalyticOrderTemp` / `\valAnalyticOrderMoist`；表 `tab_analytic.tex`，图 `fig_convergence.pdf`(b)。
 - 网格收敛：表 `tab_convergence.tex`（观测阶 `\valConvOrderQoneTemp` 等）、`tab_convergence_drytime.tex`；图 `fig_convergence.pdf`(a)。
-- 时间积分无关性：表 `tab_time_independence.tex`（`\valTimeStrictDiffMoist`、`\valTimeRadauDiffMoist`）。
+- 时间积分无关性：表 `tab_time_independence.tex`——更严格容差与 Radau（`\valTimeStrictDiffMoist`、`\valTimeRadauDiffMoist`；烘干时间差 `\valTimeStrictDryDiffSec`、`\valTimeRadauDryDiffSec` s）以及限制最大步长 Δt ≤ 3600/900/300 s 的自适应 BDF（`\valTimeStepCoarseDiffMoist`、`\valTimeStepCoarseDryDiffSec` s；`\valTimeStepFineDiffMoist`、`\valTimeStepFineDryDiffSec` s）：差异均在积分容差量级，结果与步长序列无关。
 - 守恒：图 `fig_conservation.pdf`；表 `tab_verification.tex`。
 - 独立二维轴对称程序：端面绝热时与一维解之差 `\valCrossCheckDiffMoist` / `\valCrossCheckDiffTemp`（代码独立性）；端面 Robin 时中截面差 `\valEndEffectMidplaneDiff`，烘干时间差 `\valEndEffectDryDiffPct`%（`\valEndEffectDryHoursTwoD` vs `\valEndEffectDryHoursOneD` h）；图 `fig_endeffect.pdf`。
 
