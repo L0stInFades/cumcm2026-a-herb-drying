@@ -47,6 +47,12 @@ def first_time_within(t: np.ndarray, a: np.ndarray, b: np.ndarray, tol: float) -
     return None if start >= len(t) else float(np.asarray(t, dtype=float)[start])
 
 
+def value_at(t: np.ndarray, values: np.ndarray, instant: float) -> float:
+    """Value of a recorded history at the output instant nearest ``instant`` (the instants are exact samples)."""
+    tt = np.asarray(t, dtype=float)
+    return float(np.asarray(values, dtype=float)[int(np.argmin(np.abs(tt - float(instant))))])
+
+
 @stage(
     "derived",
     deps=("q1", "q2", "q3", "q4", "convergence"),
@@ -56,7 +62,9 @@ def derived(ctx: StageContext) -> dict[str, Any]:
     q1 = ctx.dep_data("q1", "summary.json")
     q2h = ctx.dep_data("q2", "history.json")
     q3 = ctx.dep_data("q3", "summary.json")
+    q3h = ctx.dep_data("q3", "history.json")
     q4 = ctx.dep_data("q4", "summary.json")
+    q4h = ctx.dep_data("q4", "history.json")
     conv = ctx.dep_data("convergence", "convergence.json")
 
     # problem 1 (appendix 2, initial state): time scales, Fourier numbers, diffusion length, stiffness ratio
@@ -99,6 +107,10 @@ def derived(ctx: StageContext) -> dict[str, Any]:
     area_ratio = (r_end_cm / r0_cm) ** 2
     fixed_ratio = float(q4["fixed_radius"]["t_dry_h"]) / float(q4["main"]["t_dry_h"])
 
+    # centre moisture on the last 60 s output row of result3/result4: exactly below C_TARGET but displayed as 0.1500
+    centre3 = value_at(q3h["t"], q3h["centre_moist"], float(q3["t_dry_grid_s"]))
+    centre4 = value_at(q4h["t"], q4h["centre_moist"], float(q4["main"]["t_dry_grid_s"]))
+
     n = int(q1["n"])
     report = {
         "aspect_ratio": LENGTH / R0,
@@ -125,6 +137,7 @@ def derived(ctx: StageContext) -> dict[str, Any]:
             "Fo_axial_mass_upper": fo_axial_mass,
             "richardson_limit_h": limit3,
             "production_error_min": err3 * 60.0,
+            "centre_moist_grid_row": centre3,
             "stats": q3["stats"],
         },
         "q4": {
@@ -137,6 +150,7 @@ def derived(ctx: StageContext) -> dict[str, Any]:
             "D4_max": d4_max,
             "D4_at_target": d4_target,
             "D_ratio_three_to_four_init": d_max / d4_max,
+            "centre_moist_grid_row": centre4,
             "stats": q4["stats"],
         },
     }
@@ -166,8 +180,10 @@ def derived(ctx: StageContext) -> dict[str, Any]:
     ctx.number("DratioThreeToFourInit", d_max / d4_max, ".1f")
     ctx.number("QthreeDryHoursExtrapolated", limit3, ".4f")
     ctx.number("QthreeGridErrorMin", err3 * 60.0, ".2f")
+    ctx.number("QthreeCentreMoistGridRow", centre3, ".6f")
     ctx.number("QfourDryHoursExtrapolated", limit4, ".4f")
     ctx.number("QfourGridErrorMin", err4 * 60.0, ".2f")
+    ctx.number("QfourCentreMoistGridRow", centre4, ".6f")
     ctx.number("QthreeNfev", int(q3["stats"]["nfev"]))
     ctx.number("QthreeNlu", int(q3["stats"]["nlu"]))
     ctx.number("QthreeSegments", int(q3["stats"]["segments"]))
@@ -180,4 +196,4 @@ def derived(ctx: StageContext) -> dict[str, Any]:
     ctx.number("ChamberEndHours", float(q3["spec"]["chamber"]["t_end"]) / HOUR, ".0f")
     ctx.number("RadiusSamples", int(q4["spec"]["radius"]["samples"]))
     ctx.number("RadiusEndHours", float(q4["spec"]["radius"]["t_end"]) / HOUR, ".0f")
-    return {"numbers": 39, "fo_axial_heat": fo_axial_heat, "fo_axial_mass_upper": fo_axial_mass}
+    return {"numbers": 41, "fo_axial_heat": fo_axial_heat, "fo_axial_mass_upper": fo_axial_mass}

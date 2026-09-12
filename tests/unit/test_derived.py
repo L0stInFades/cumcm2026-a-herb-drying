@@ -26,3 +26,13 @@ def test_first_time_within_requires_the_gap_to_stay_small() -> None:
     assert first_time_within(t, a, b, 0.5) == 4.0
     assert first_time_within(t, a + 10.0, b, 0.5) is None
     assert first_time_within(t, b, b, 0.5) == 0.0
+
+
+def test_value_at_picks_the_nearest_recorded_instant() -> None:
+    from pipelines.a.derived import value_at
+
+    t = np.array([0.0, 60.0, 120.0, 180.0])
+    v = np.array([1.0, 2.0, 3.0, 4.0])
+    assert value_at(t, v, 120.0) == 3.0
+    assert value_at(t, v, 119.0) == 3.0
+    assert value_at(t, v, 1000.0) == 4.0

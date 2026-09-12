@@ -212,6 +212,10 @@ t_{\mathrm{end}}=\inf\Bigl\{t>0:\ \max_{0\le r\le R_0}C(r,t)<C^\ast\Bigr\},\qqua
 
 \paragraph{为什么必须精确求根。} 若只在 \SI{60}{\second} 的输出网格上判断，得到的是 $t_{\mathrm{end}}$ 向上取整到 \SI{60}{\second} 的值：事件求根给出 $\valQthreeDryHoursFour$ h，\SI{60}{\second} 网格给出 $\valQthreeDryHoursGrid$ h，与 \nolinkurl{result3.xlsx} 的最后一行一致。
 
+\begin{remark}[四位小数的显示与判据]\label{rem:rounding}
+判据在 $t_{\mathrm{end}}$ 处恰好取等号，因此结束时刻附近的中心水分浓度与 $C^\ast$ 的差远小于四位小数的分辨率：\nolinkurl{result3.xlsx} 末行（$\valQthreeDryHoursGrid$ h）的中心水分浓度精确值为 $\valQthreeCentreMoistGridRow$、\nolinkurl{result4.xlsx} 末行（$\valQfourDryHoursGrid$ h）为 $\valQfourCentreMoistGridRow$，按题目要求四舍五入到四位小数后\textbf{显示}为 $0.1500$。表~\ref{tab:q3-moist}、表~\ref{tab:q4-moist} 末行同理。判据是否成立由未舍入的解按\eqref{eq:criterion} 判定，并由与求解器分离的校验器独立确认（第~\ref{sec:validation} 节）：$t<t_{\mathrm{end}}$ 的全部输出行满足 $\max_iC_i\ge C^\ast$，$t\ge t_{\mathrm{end}}$ 的全部行满足 $\max_iC_i<C^\ast$。
+\end{remark}
+
 \subsection{结果与分析}
 
 \input{generated/tables/tab_q3_moist.tex}
