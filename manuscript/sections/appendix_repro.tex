@@ -1,1 +1,17 @@
-复现步骤：安装 Modal 客户端并登录后，在仓库根目录依次执行 \nolinkurl{python3 tools/cli.py provision}、\nolinkurl{python3 tools/cli.py run ingest,validate --new-run}、各科学阶段、\nolinkurl{python3 tools/cli.py run lint,test,paper,qa,package,release}。每个阶段目录下的 \nolinkurl{manifest.json} 记录输入输出散列、参数与环境。
+\subsection*{复现步骤}
+本文的全部结果由一次云端运行产生。安装 Modal 客户端并完成登录后，在仓库根目录依次执行：
+
+\begin{enumerate}[leftmargin=*,itemsep=0.15em]
+  \item \nolinkurl{python3 tools/cli.py provision}——验证云端工具链（\TeX{} Live、中文字体、科学计算栈）。
+  \item \nolinkurl{python3 tools/cli.py run ingest,validate --new-run}——读入题目 PDF 与附件、记录其 SHA-256，并执行输入数据契约（时间列步长与单调性、半径单调不增、数值范围、无缺失）。
+  \item \nolinkurl{python3 tools/cli.py run q1,q2,q3,q4 --size medium}——四个问题的求解与各自的独立校验。
+  \item \nolinkurl{python3 tools/cli.py run convergence,verification,sensitivity,extension,derived}——收敛研究、解析解与二维交叉检验、灵敏度与备选解释、模型评价扩展、论文引用的派生量。
+  \item \nolinkurl{python3 tools/cli.py run results,figures,tables}——由附件 3 的模板生成 \nolinkurl{result1.xlsx}--\nolinkurl{result4.xlsx}，生成矢量图与三线表。
+  \item \nolinkurl{python3 tools/cli.py run lint,test,paper,qa,package,release}——静态检查、单元与性质测试、论文排版、质量门禁、支撑材料打包与发布。
+\end{enumerate}
+
+\subsection*{可追溯性}
+每个阶段目录下的 \nolinkurl{manifest.json} 记录：阶段状态与用时、代码树摘要与 Git 提交、配置摘要、依赖阶段的输出摘要、参数、全部输入与输出文件的 SHA-256、度量指标、运行环境（Python 版本、平台、CPU 数、依赖包版本）。论文中的每一个数字都由某个阶段以数值宏的形式登记（\nolinkurl{numbers.json}），或来自 \nolinkurl{tables} 阶段生成的三线表；\nolinkurl{.tex} 源文件中不存在手工键入的结果数字。随机性（若有）只经统一的随机种子接口设置。因此在相同的代码版本与输入下，重复运行得到逐位相同的结果与相同的支撑材料散列。
+
+\subsection*{质量门禁}
+发布前必须全部通过：\textbf{lint}（\nolinkurl{ruff check}、\nolinkurl{ruff format --check}、\nolinkurl{mypy}）；\textbf{test}（全部单元与性质测试通过，附覆盖率报告）；\textbf{qa}（摘要 1 页、正文含参考文献不超过 30 页、无未定义引用、无 \TeX{} 错误、字体全部嵌入、A4 页面、无过宽行、数值宏无冲突、含《AI 工具使用详情》、无身份信息、四个结果工作簿全部通过模板契约）；\textbf{package}（支撑材料成员与论文附录清单完全一致）。上表列出本次运行各阶段的状态与输出摘要。

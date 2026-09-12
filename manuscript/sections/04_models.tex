@@ -5,7 +5,7 @@
 
 \subsection{由守恒律到一维径向方程}
 
-\paragraph{水分。} 以干物质骨架为参照系。记干物质表观密度为 $\rho_s$（\si{\kilo\gram} 干物质每 \si{\cubic\meter} 湿物料），干基含水率为 $C$，则单位体积含水量为 $\rho_sC$。由假设~\ref{as:fick}，水分相对骨架的质量通量为 $\bm j=-\rho_sD(C,T)\nabla C$。在任一固定物质区域 $\Omega$ 上作水分衡算并用散度定理，得 $\partial_t(\rho_sC)+\nabla\!\cdot\!\bm j=0$；在固定域上 $\rho_s$ 为常数（假设~\ref{as:shrink}），故
+\paragraph{水分。} 以干物质骨架为参照系。记干物质表观密度为 $\rho_s$（\si{\kilo\gram} 干物质每 \si{\cubic\meter} 湿物料），干基含水率为 $C$，则单位体积含水量为 $\rho_sC$。由假设~\ref{as:fick}，水分相对骨架的质量通量为 $\bm j=-\rho_sD(C,T)\nabla C$。在任一固定物质区域 $\Omega$ 上作水分衡算并用散度定理，得 $\partial_t(\rho_sC)+\nabla\!\cdot\!\bm j=0$；在固定域上 $\rho_s$ 为常数（假设~\ref{as:shrink}），故（干燥过程中的热质迁移理论见文献\cite{luikov1966,mujumdar2014}）
 \begin{equation}
 \pdv{C}{t}=\nabla\!\cdot\!\bigl(D(C,T)\nabla C\bigr).
 \label{eq:mass3d}
@@ -42,12 +42,12 @@ T(r,0)&=T_0=\SI{28}{\celsius},\qquad C(r,0)=C_0=\SI{2.55}{\kilo\gram\per\kilo\gr
 \mathrm{Bi}_m=\frac{h_mR_0}{D(C_0)}=\valQoneBiotMass,\qquad
 \frac{\tau_{\text{热}}}{\tau_{\text{质}}}=\frac{R_0^2/\alpha}{R_0^2/D}=\frac{1}{\valQoneStiffnessRatio} .
 \]
-$\mathrm{Bi}\approx1.4$ 说明内、外热阻相当，集总参数法（$\mathrm{Bi}\ll1$）不适用，必须解分布参数模型；$\mathrm{Bi}_m>3$ 说明传质的内阻已占优。两个时间尺度为 $\tau_{\text{热}}=R_0^2/\alpha=\valQoneHeatTimeScaleS$ \si{\second} 与 $\tau_{\text{质}}=R_0^2/D=\valQoneMassTimeScaleH$ \si{\hour}：在 \SI{1800}{\second} 的预热阶段内，热 Fourier 数 $\mathrm{Fo}=\alpha t/R_0^2=\valQoneFourierHeat$ 已是 $O(1)$，而质 Fourier 数只有 $\valQoneFourierMass$，对应的扩散长度 $\sqrt{Dt}=\valQoneDiffusionLengthCm$ \si{\centi\meter}。这一预判与计算结果完全一致（图~\ref{fig:q1profiles}）：\SI{1800}{\second} 时温度已渗透到中心，而水分的变化仍限制在表层约 \SI{0.5}{\centi\meter} 内。
+$\mathrm{Bi}\approx1.4$ 说明内、外热阻相当，集总参数法（$\mathrm{Bi}\ll1$）不适用\cite{incropera2007}，必须解分布参数模型；$\mathrm{Bi}_m>3$ 说明传质的内阻已占优。两个时间尺度为 $\tau_{\text{热}}=R_0^2/\alpha=\valQoneHeatTimeScaleS$ \si{\second} 与 $\tau_{\text{质}}=R_0^2/D=\valQoneMassTimeScaleH$ \si{\hour}：在 \SI{1800}{\second} 的预热阶段内，热 Fourier 数 $\mathrm{Fo}=\alpha t/R_0^2=\valQoneFourierHeat$ 已是 $O(1)$，而质 Fourier 数只有 $\valQoneFourierMass$，对应的扩散长度 $\sqrt{Dt}=\valQoneDiffusionLengthCm$ \si{\centi\meter}。这一预判与计算结果完全一致（图~\ref{fig:q1profiles}）：\SI{1800}{\second} 时温度已渗透到中心，而水分的变化仍限制在表层约 \SI{0.5}{\centi\meter} 内。
 
 \subsection{有限体积离散}
 \label{subsec:fv}
 
-为了让同一套离散同时适用于固定域与收缩域，在无量纲坐标 $\xi=r/R(t)\in[0,1]$ 上离散（固定域时 $R\equiv R_0$，$\xi=r/R_0$）。取\textbf{顶点型}（vertex-centred）网格
+为了让同一套离散同时适用于固定域与收缩域，在无量纲坐标 $\xi=r/R(t)\in[0,1]$ 上离散（固定域时 $R\equiv R_0$，$\xi=r/R_0$）。采用有限体积法\cite{patankar1980,quarteroni2007}，取\textbf{顶点型}（vertex-centred）网格
 \[\xi_i=i\,\Delta\xi,\quad i=0,1,\dots,n,\quad \Delta\xi=1/n,\]
 控制体为 $[\xi_{i-1/2},\xi_{i+1/2}]$，其中 $\xi_{i\pm1/2}=\xi_i\pm\Delta\xi/2$，并约定 $\xi_{-1/2}=0$、$\xi_{n+1/2}=1$，即轴心与表面处为\textbf{半控制体}。控制体的径向测度（已除以 $2\pi R^2$）为
 \begin{equation}
@@ -111,7 +111,7 @@ $D_{i+1/2}>0$、$\xi_{i+1/2}\ge0$。当 $0<i^\ast<n$ 时 $C_{i^\ast\pm1}\le C_{i
 \subsection{时间积分、输出采样与算法}
 \label{subsec:time}
 
-半离散系统刚性（$\tau_{\text{热}}/\tau_{\text{质}}\sim10^{-2}$，且空间加密使刚性比再放大 $n^2$ 倍），必须用全隐式方法。本文采用 SciPy\cite{scipy2020} 的变阶变步长 BDF\cite{hairer1996,shampine1997}，并提供块三对角的雅可比稀疏结构（每个节点只与自身及左右邻居的 $T,C$ 耦合），使每步的线性代数为 $O(N)$。三个实现要点：
+半离散系统刚性（$\tau_{\text{热}}/\tau_{\text{质}}\sim10^{-2}$，且空间加密使刚性比再放大 $n^2$ 倍），必须用全隐式方法。本文采用 SciPy\cite{scipy2020} 与 NumPy\cite{harris2020} 实现的变阶变步长 BDF\cite{hairer1996,shampine1997}，并提供块三对角的雅可比稀疏结构（每个节点只与自身及左右邻居的 $T,C$ 耦合），使每步的线性代数为 $O(N)$。三个实现要点：
 
 \begin{enumerate}[leftmargin=*,itemsep=0.2em]
   \item \textbf{在数据折点重启。} $T_{\mathrm{air}},C_{\mathrm{air}}$ 是折线、$R$ 是 PCHIP 样条，其导数在样本点处跳变。多步法跨过折点时的局部误差不受容差控制。因此把 $[0,t_{\text{终}}]$ 按附件 1 的全部样本时刻、切换到平台的时刻以及附件 2 的全部节点分段，逐段积分、段间重启（问题 3 共 $\valQthreeSegments$ 段）。
