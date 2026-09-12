@@ -10,11 +10,13 @@
 - `manuscript/main.tex`：载入 gbt7714（缺失时回退 natbib+unsrtnat）、`\sci` 与 `\smalltable` 宏、"补充表格"附录（大表移出正文）。
 
 ### Fixed
-- 参考文献包未载入导致 `\cite` 展开为完整作者串、产生 170 pt 溢出行；符号表（longtable）无题注却占用表号 1。
+- 参考文献包未载入导致 `\cite` 展开为完整作者串、产生 170 pt 溢出行；符号表（longtable）无题注却占用表号 1；`manuscript/ai_usage.tex` 独立编译时 `\ref{app:code}` 显示为 `??`（qa 的引用检查只覆盖主文档）。
+- 结果文件末行的水分浓度按题目要求四舍五入到四位小数后显示为 `0.1500`（精确值略低于 0.15）；`derived` 阶段登记精确值，论文以“注”明示，避免误读。
 
 ### Verified（run 20260912-104036-184d092）
 - `paper`：165 页，正文 30 页，摘要 1 页，0 处未定义引用，0 处溢出行，26 个图文件、15 张表。
-- `qa`：16/16 通过（含 result1–4.xlsx 契约）；`lint` 0 项；`test` 48 项通过。
+- `qa`：16/16 通过（含 result1–4.xlsx 契约）；`lint` 0 项；`test` 49 项通过；`package` 257 个成员、漂移 0。
+- 论文数字与交付工作簿的独立抽查 15/15 一致（q1/q2 的表格单元、q3/q4 的末行时刻与行数、`tab_q3_moist` 与 result3.xlsx 逐格一致）。
 
 ## [Unreleased]
 
