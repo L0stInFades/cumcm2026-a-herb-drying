@@ -1,8 +1,83 @@
 \subsection{模型假设}
-（编号假设及其依据，待撰写。）
+下列假设分为两类：\textbf{题给}假设直接来自题目与附录，\textbf{附加}假设是本文为闭合模型而引入的。每条给出依据，并说明被违反时结果会向哪个方向偏移；其中可量化的偏差在第~\ref{sec:validation} 节或第~\ref{sec:evaluation} 节给出。
+
+\begin{assumption}[圆柱几何与一维径向化，附加]\label{as:1d}
+药材为半径 $R$、长 $L$ 的正圆柱，温度与水分浓度只依赖到轴心的距离 $r$ 与时间 $t$，即 $T=T(r,t)$、$C=C(r,t)$。
+\emph{依据}：长径比 $L/R_0=\valAspectRatio$；在整个烘干时长内，水分的轴向傅里叶数上界为 $D_{\max}t_{\mathrm{end}}/(L/2)^2=\valFoAxialMassUpper<1$，端面影响不能扩散到中截面；热的轴向傅里叶数虽为 $\valFoAxialHeat$，但药材温度在 \SI{3}{\hour} 内即与烘房接近一致（问题 2），此后不存在可被端面放大的轴向温差。\emph{验证}：独立编写的二维轴对称程序给出端部效应对烘干时间的影响为 $\valEndEffectDryDiffPct\%$（第~\ref{subsec:endeffect} 小节），故一维化带来的偏差可忽略。
+\end{assumption}
+
+\begin{assumption}[连续介质、各向同性与均匀初值，题给+附加]\label{as:medium}
+药材是各向同性的连续介质，物性只通过局部的 $C$ 与 $T$ 依赖于位置；初始时刻 $T\equiv T_0=\SI{28}{\celsius}$、$C\equiv C_0=\SI{2.55}{\kilo\gram\per\kilo\gram}$（干基含水率）。
+\emph{依据}：题目给出的经验公式均为 $C$、$T$ 的显函数，未区分方向；题目给出均匀初值。\emph{后果}：真实药材（纤维结构）的轴向扩散通常快于径向，忽略各向异性会略微高估烘干时间。
+\end{assumption}
+
+\begin{assumption}[内部水分迁移服从 Fick 扩散，题给]\label{as:fick}
+药材内部的水分通量（相对于固体骨架）为 $\bm j=-\rho_s D(C,T)\nabla C$，$\rho_s$ 为干物质表观密度；液态水与水蒸气的迁移合并为一个有效扩散系数 $D$。
+\emph{依据}：题目给出的正是"水分浓度扩散系数"的经验公式，其指数形式 $D=D_0\mathrm{e}^{-a/C}\mathrm{e}^{-E/T_K}$ 是干燥文献中有效扩散率的常用拟合形式\cite{zogzas1996,mujumdar2014}。\emph{后果}：不区分毛细流动与蒸汽扩散，也不含总压梯度驱动的渗流\cite{whitaker1977}。
+\end{assumption}
+
+\begin{assumption}[表面为对流型 Robin 条件，传递系数恒定，题给+附加]\label{as:boundary}
+在表面 $r=R(t)$ 处
+\[-k\,\partial_r T=h\,(T_s-T_{\mathrm{air}}(t)),\qquad -D\,\partial_r C=h_m\,(C_s-C_{\mathrm{air}}(t)),\]
+其中 $h=\SI{25}{\watt\per\square\meter\per\kelvin}$、$h_m=\SI{8e-7}{\meter\per\second}$ 在四个问题中一律沿用（附录 3、4 未另给 $h$、$h_m$）。
+\emph{依据}：$h$、$h_m$ 的量纲唯一地确定了上述形式；$h$、$h_m$ 刻画烘房气流与表面之间的外部传递，不属于附录 3、4 所描述的药材内部物性（MDR-0002）。\emph{后果}：$h_m$ 的取值误差对烘干时间的弹性为 $\valElasHm$，$h$ 的为 $\valElasH$（表~\ref{tab:sensitivity}），故该假设不是结果的敏感来源。
+\end{assumption}
+
+\begin{assumption}[烘房状态空间均匀、时间上分段线性并在恒温阶段取平台，附加]\label{as:chamber}
+$T_{\mathrm{air}}(t)$、$C_{\mathrm{air}}(t)$ 在药材表面处处相同；在附件 1 的样本之间线性插值；$t>\SI{14400}{\second}$ 后取恒温干燥阶段的平台值（末 \SI{1}{\hour} 样本均值）$T_{\mathrm{air}}=\valQthreeAirTempPlateau\,^\circ$C、$C_{\mathrm{air}}=\valQthreeAirHumPlateau$ kg/kg。
+\emph{依据}：附件 1 的温度在约 \SI{2}{\hour} 后围绕 \SI{50}{\celsius} 波动（相邻样本差 $\pm\SI{0.3}{\celsius}$，为测量噪声量级），"恒温干燥阶段"的物理含义是烘房保持设定值，取末 \SI{1}{\hour} 均值是对设定值的无偏且抗单点噪声的估计（MDR-0003）。\emph{备选}：取末样本值或名义值 \SI{50}{\celsius}/\SI{0.05}{\kilo\gram\per\kilo\gram} 的结果见表~\ref{tab:alternatives}（相差 $\valAltPlateauLastSamplePct\%$ 以内）。
+\end{assumption}
+
+\begin{assumption}[能量方程不含蒸发潜热源，题给]\label{as:latent}
+能量方程只含导热项，表面只通过对流换热与烘房交换热量，不扣除表面蒸发所需的潜热。
+\emph{依据}：题目给出的参数体系中没有潜热、蒸气压或平衡含水率，表面传质律 $h_m(C_s-C_{\mathrm{air}})$ 也不含湿球反馈；强行加入潜热项会使该传质律给出的蒸发速率把表面温度压到 \SI{0}{\celsius} 以下（不适定，MDR-0008）。\emph{后果}：前十余小时药材温度被高估，因而 $D$ 被高估、烘干时间被低估。第~\ref{sec:evaluation} 节以"潜热等效温降"作后验诊断（峰值 $\valExtLatentDeltaTPeak$ K，降到 1 K 以下需 $\valExtLatentBelowOneKHours$ h），并以湿球能量上限给出界定性结果（$+\valExtCappedPct\%$）。
+\end{assumption}
+
+\begin{assumption}[问题 1--3 体积不变；问题 4 均匀各向同性收缩且干物质守恒，题给+附加]\label{as:shrink}
+问题 1--3 中 $R\equiv R_0$；问题 4 中半径按附件 2 的 $R(t)$ 变化（保单调三次 Hermite 插值 PCHIP\cite{fritsch1980}，\SI{72}{\hour} 之后保持末值 $\valQfourRadiusFinalCm$ \si{\centi\meter}），收缩是均匀的：每个物质点的径向坐标与 $R(t)$ 成比例，干物质总量守恒。
+\emph{依据}：题目在问题 1--3 未提尺寸变化，在问题 4 直接给出 $R(t)$；均匀收缩是干燥文献处理收缩的标准出发点\cite{ratti1994}。\emph{备选}：实验室坐标写法（物质被边界扫出计算域）的结果相差 $\valQfourAltDiffPct\%$（表~\ref{tab:alternatives}）。
+\end{assumption}
+
+\begin{assumption}[忽略辐射、收缩功与内部对流，附加]\label{as:minor}
+不计烘房壁面与药材之间的辐射换热、收缩过程的机械功与孔隙内的对流。
+\emph{依据}：题目只给出对流换热系数；在 \SI{50}{\celsius} 量级下，线性化辐射换热系数 $h_r=4\varepsilon\sigma T_K^3$ 只有 $h=\SI{25}{\watt\per\square\meter\per\kelvin}$ 的四分之一量级，相当于把有效 $h$ 提高不到三成；而烘干时间对 $h$ 的弹性仅为 $\valElasH$（表~\ref{tab:sensitivity}），故影响可忽略。
+\end{assumption}
+
+\begin{assumption}[烘干结束判据，题给]\label{as:criterion}
+烘干结束时刻为 $t_{\mathrm{end}}=\inf\{t>0:\ \max_{0\le r\le R(t)}C(r,t)<C^\ast\}$，$C^\ast=\SI{0.15}{\kilo\gram\per\kilo\gram}$。
+\emph{依据}：题目要求"各处的水分浓度应低于 \SI{0.15}{\kilo\gram\per\kilo\gram}"。\emph{备选}：若按体积平均含水率判断，烘干时间为 $\valAltQthreeMeanCriterionHours$ h（$\valAltQthreeMeanCriterionPct\%$，表~\ref{tab:alternatives}）——判据的选择比任何参数扰动都更显著地改变答案。
+\end{assumption}
 
 \subsection{符号说明}
-\begin{longtable}{@{}lll@{}}
-\toprule 符号 & 含义 & 单位 \\ \midrule \endhead \bottomrule \endfoot
-$t$ & 时间 & \si{\second} \\
+下表列出全文使用的主要符号；其余符号在首次出现处定义。除特别说明外一律使用国际单位制，含水率为干基（\si{\kilo\gram} 水/\si{\kilo\gram} 干物质）。
+
+\begin{longtable}{@{}llll@{}}
+\toprule 符号 & 含义 & 单位 & 取值/来源 \\* \midrule \endhead \bottomrule \endfoot
+$t$ & 时间 & \si{\second} & --- \\
+$r$ & 到药材中心（轴）的距离 & \si{\meter} & $0\le r\le R(t)$ \\
+$R(t)$ & 药材半径；$R_0=R(0)$，$R_\infty$ 为末值 & \si{\meter} & 附件 2；$R_0=\SI{0.02}{\meter}$ \\
+$L$ & 圆柱长度 & \si{\meter} & \SI{0.25}{\meter} \\
+$\xi$ & 无量纲径向坐标 $r/R(t)$（Landau 坐标） & --- & $\xi\in[0,1]$ \\
+$T$ & 药材温度；$T_s=T(R,t)$ 为表面温度 & \si{\celsius} & $T(r,0)=\SI{28}{\celsius}$ \\
+$T_K$ & 绝对温度 $T+273.15$ & \si{\kelvin} & 用于 $D$ 的公式 \\
+$C$ & 药材水分浓度（干基含水率）；$C_s=C(R,t)$ & \si{\kilo\gram\per\kilo\gram} & $C(r,0)=2.55$ \\
+$\bar C$ & 体积平均水分浓度 & \si{\kilo\gram\per\kilo\gram} & $\bar C=\frac{2}{R^2}\int_0^R\!C r\,\mathrm{d}r$ \\
+$T_{\mathrm{air}},C_{\mathrm{air}}$ & 烘房温度与水分浓度 & \si{\celsius}, \si{\kilo\gram\per\kilo\gram} & 附件 1 + 平台值 \\
+$\rho,c_p,k$ & 密度、比热容、热传导系数 & \si{\kilo\gram\per\cubic\meter}, \si{\joule\per\kilo\gram\per\kelvin}, \si{\watt\per\meter\per\kelvin} & 附录 2--4 \\
+$D$ & 水分浓度扩散系数 $D_0\mathrm{e}^{-a/C}\mathrm{e}^{-E/T_K}$ & \si{\square\meter\per\second} & 附录 2--4 \\
+$\alpha$ & 热扩散率 $k/(\rho c_p)$ & \si{\square\meter\per\second} & $\valQoneAlpha$（附录 2） \\
+$h,h_m$ & 对流换热系数、对流传质系数 & \si{\watt\per\square\meter\per\kelvin}, \si{\meter\per\second} & $25$, $8\times10^{-7}$ \\
+$\mathrm{Bi},\mathrm{Bi}_m$ & 热、质 Biot 数 $hR_0/k$、$h_mR_0/D$ & --- & $\valQoneBiotHeat$, $\valQoneBiotMass$ \\
+$\mathrm{Fo},\mathrm{Fo}_m$ & 热、质 Fourier 数 $\alpha t/R_0^2$、$Dt/R_0^2$ & --- & 见第~\ref{subsec:q1analysis} 小节 \\
+$C^\ast$ & 烘干结束的水分浓度阈值 & \si{\kilo\gram\per\kilo\gram} & $0.15$ \\
+$t_{\mathrm{end}}$ & 烘干结束时间 & \si{\second}（报告为 h） & 求解结果 \\
+$n,\Delta\xi$ & 径向控制体个数、无量纲步长 $1/n$ & --- & $n=\valGridNodes-1$ \\
+$\Delta r$ & 径向网格步长 $R_0/n$ & \si{\centi\meter} & $\valGridDrCm$ \\
+$V_i$ & 第 $i$ 个控制体的无量纲测度 & --- & 式~\eqref{eq:volumes} \\
+$\mathcal F_{i+1/2}$ & 界面 $i+\tfrac12$ 上的无量纲水分通量 & --- & 式~\eqref{eq:flux} \\
+$W$ & 离散水分存量 $\sum_i V_iC_i$ & \si{\kilo\gram\per\kilo\gram} & 式~\eqref{eq:invariant} \\
+$p$ & 观测收敛阶 $\log_2(e_k/e_{k+1})$ & --- & 表~\ref{tab:convergence} \\
+$E_p$ & 弹性 $(\Delta t_{\mathrm{end}}/t_{\mathrm{end}})/(\Delta p/p)$ & --- & 表~\ref{tab:sensitivity} \\
+$L_v,\rho_{s0}$ & 汽化潜热、干物质表观密度 & \si{\joule\per\kilo\gram}, \si{\kilo\gram\per\cubic\meter} & 第~\ref{sec:evaluation} 节 \\
+$T_{\mathrm{wb}},C_{\mathrm{eq}}$ & 烘房湿球温度、平衡含水率 & \si{\celsius}, \si{\kilo\gram\per\kilo\gram} & 第~\ref{sec:evaluation} 节 \\
 \end{longtable}

@@ -13,7 +13,7 @@ import numpy as np
 
 from forge.context import StageContext
 from forge.runner import stage
-from pipelines.a.physics import APPENDIX3, C_INIT, C_TARGET, LENGTH, R0, thermal_diffusivity
+from pipelines.a.physics import APPENDIX3, APPENDIX4, C_INIT, C_TARGET, LENGTH, R0, thermal_diffusivity
 
 HOUR = 3600.0
 Q1_END_S = 1800.0
@@ -80,6 +80,9 @@ def derived(ctx: StageContext) -> dict[str, Any]:
     d_max = float(APPENDIX3.diffusivity(np.array(C_INIT), np.array(t_plateau)))
     d_target = float(APPENDIX3.diffusivity(np.array(C_TARGET), np.array(t_plateau)))
     d_surface_dry = float(APPENDIX3.diffusivity(np.array(q3["surface_moist_at_dry"]), np.array(t_plateau)))
+    bi_mass_dry = APPENDIX3.hm * R0 / d_surface_dry
+    d4_max = float(APPENDIX4.diffusivity(np.array(C_INIT), np.array(t_plateau)))
+    d4_target = float(APPENDIX4.diffusivity(np.array(C_TARGET), np.array(t_plateau)))
     half_length = LENGTH / 2.0
     fo_axial_heat = fourier_number(alpha3, t3, half_length)
     fo_axial_mass = fourier_number(d_max, t3, half_length)
@@ -94,6 +97,7 @@ def derived(ctx: StageContext) -> dict[str, Any]:
     r_end_cm = float(q4["spec"]["radius"]["r_end_cm"])
     r0_cm = float(q4["spec"]["radius"]["r_start_cm"])
     area_ratio = (r_end_cm / r0_cm) ** 2
+    fixed_ratio = float(q4["fixed_radius"]["t_dry_h"]) / float(q4["main"]["t_dry_h"])
 
     n = int(q1["n"])
     report = {
@@ -116,6 +120,7 @@ def derived(ctx: StageContext) -> dict[str, Any]:
             "D_at_target": d_target,
             "D_surface_at_dry": d_surface_dry,
             "D_ratio_max_to_surface": d_max / d_surface_dry,
+            "Bi_mass_at_dry": bi_mass_dry,
             "Fo_axial_heat": fo_axial_heat,
             "Fo_axial_mass_upper": fo_axial_mass,
             "richardson_limit_h": limit3,
@@ -128,6 +133,10 @@ def derived(ctx: StageContext) -> dict[str, Any]:
             "r_end_cm": r_end_cm,
             "area_ratio": area_ratio,
             "inverse_radius_ratio_squared": 1.0 / area_ratio,
+            "fixed_to_moving_ratio": fixed_ratio,
+            "D4_max": d4_max,
+            "D4_at_target": d4_target,
+            "D_ratio_three_to_four_init": d_max / d4_max,
             "stats": q4["stats"],
         },
     }
@@ -151,6 +160,10 @@ def derived(ctx: StageContext) -> dict[str, Any]:
     ctx.number("DtargetAppendixThree", d_target, ".1e")
     ctx.number("DsurfaceAtDryQthree", d_surface_dry, ".1e")
     ctx.number("DratioQthree", d_max / d_surface_dry, ".0f")
+    ctx.number("BiotMassAtDryQthree", bi_mass_dry, ".0f")
+    ctx.number("DmaxAppendixFour", d4_max, ".2e")
+    ctx.number("DtargetAppendixFour", d4_target, ".1e")
+    ctx.number("DratioThreeToFourInit", d_max / d4_max, ".1f")
     ctx.number("QthreeDryHoursExtrapolated", limit3, ".4f")
     ctx.number("QthreeGridErrorMin", err3 * 60.0, ".2f")
     ctx.number("QfourDryHoursExtrapolated", limit4, ".4f")
@@ -162,8 +175,9 @@ def derived(ctx: StageContext) -> dict[str, Any]:
     ctx.number("QfourRadiusFinalCm", r_end_cm, ".3f")
     ctx.number("QfourAreaRatioPct", 100.0 * area_ratio, ".1f")
     ctx.number("QfourRadiusRatioSquared", 1.0 / area_ratio, ".2f")
+    ctx.number("QfourFixedToMovingRatio", fixed_ratio, ".2f")
     ctx.number("ChamberSamples", int(q3["spec"]["chamber"]["samples"]))
     ctx.number("ChamberEndHours", float(q3["spec"]["chamber"]["t_end"]) / HOUR, ".0f")
     ctx.number("RadiusSamples", int(q4["spec"]["radius"]["samples"]))
     ctx.number("RadiusEndHours", float(q4["spec"]["radius"]["t_end"]) / HOUR, ".0f")
-    return {"numbers": 33, "fo_axial_heat": fo_axial_heat, "fo_axial_mass_upper": fo_axial_mass}
+    return {"numbers": 39, "fo_axial_heat": fo_axial_heat, "fo_axial_mass_upper": fo_axial_mass}
