@@ -2,7 +2,7 @@
 
 本文件汇总最终云端运行的全部科学结果：每个问题的方法、关键数值、表格/图文件、`ctx.number` 键名、验证结论、局限与备选解释。所有数值均来自 `numbers.json`（论文中用 `\val<Key>` 引用）与 `tables` 阶段生成的 `tables/*.tex`，禁止手抄。
 
-- 最终 run：`RUN_ID_PLACEHOLDER`（代码 `COMMIT_PLACEHOLDER`）。
+- 最终 run：`20260912-042323-b639c9c`（代码 `b639c9c`）。
 - 阶段：ingest, validate, q1, q2, q3, q4, convergence, verification, sensitivity, results, figures, tables, lint, test（全部 completed）。
 - 生产网格：Δr = 0.1/2⁵ = 0.003125 cm（641 节点，`\valGridNodes`、`\valGridDrCm`）；时间积分 BDF，rtol=1e-9、atol=1e-11（`\valTimeRtol`、`\valTimeAtol`），在附件 1 的每个样本时刻与附件 2 的每个节点重启（MDR-0004）。
 
