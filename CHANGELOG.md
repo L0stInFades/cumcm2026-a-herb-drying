@@ -2,6 +2,37 @@
 
 格式遵循 Keep a Changelog；版本号遵循语义化版本。
 
+## [1.0.0] - 2026-09-12
+
+本版本处理三位审稿人（rigor / compliance / writing）的 43 条意见（17 major、26 minor）：采纳 41 条、部分采纳 1 条、不采纳 1 条，逐条处理记录见 `docs/REVIEW_RESPONSE.md`。**四个问题的主结果未变**（t_end = 57.48 h 与 51.09 h，表 2–表 7 的全部数值不变）；变化的是检验的深度、表述的准确性与交付的完整性。
+
+### Added
+- **Duhamel 解析基准（MDR-0012）**：`verify.duhamel_field` 给出分段线性烘房温度下 Robin 圆柱的精确级数解，作为问题 1 温度场的**真解**对照（表格时刻误差 2.0e-6 °C、观测阶 1.97；result1.xlsx 温度表全部 37 800 个单元误差 2.0e-6 °C）。表 14 增列第三组。
+- **完整输出网格的收敛研究（MDR-0011）**：`convergence._output_grid_study` 在 k=6、7 上重解问题 1、2 的 1 s 输出网格，按实测三网格阶作 Richardson 外推，逐格评估交付数组的误差并统计超过半个末位（5e-5）的单元；新增附录表 `tab_outputgrid`。
+- **不受参照偏置的三网格观测阶（MDR-0011）**：`verify.convergence_table` 与 `verify.triplet_orders`；表 13、表 15 增列，表注写明自收敛估计量的偏置因子。
+- **守恒型水分方程（MDR-0010）**：`ProblemSpec.mass_form`（drybasis | conservative）与 `physics.storage_coefficient`、`verify.conservative_moisture_balance`；作为第 (d) 处解释性不确定性进入 §1.3 与表 11（−18.71%）。
+- **问题 2/3 的区间一致性校验**：`verification.horizon_consistency`（181 个共有 60 s 整点上差异为 0）。
+- **补充交付 `result2_全过程.xlsx`**：同一模板、温度与水分浓度两张表、覆盖 0–t_end、60 s 分辨率（MDR-0005 修订；全过程每 1 s 的版本实测 57.3 MB，超出 20 MB 预算）。
+- **能量上限的局部密度换算**：`FluxCap.local_rho_s`，潜热影响改以区间报告（+17.3% 至 +26.3%）。
+- **数据自洽性与烘房统计**：`derived` 登记题给 R(t) 与 ρ(C) 在干物质守恒下的 13.4% 差、由 ρ(C) 反推的末半径 1.287 cm、末 1 h 窗口的噪声统计与 14400 s 处的 0.17 K 跳跃、附录 3 的初始传质 Biot 数 2.84、收缩幅度 s 的标度预测 −1.34。
+- **结论节**：四问答案汇总表与三条跨问题结论；§5–§7、§9 补节首概述。
+- MDR-0010、0011、0012；`docs/REVIEW_RESPONSE.md`。
+
+### Changed
+- **结果文件末行**：`solve_until_dry` 增加 `display_decimals`，result3/result4 写到四位小数下全场均 ≤0.1499 的首个 60 s 整点（行数 3449→3452、3066→3067），消除"显示为 0.1500"的误读。
+- **论断改写**：§8.2 的"每一位小数都有意义"改为分层结论（温度全网格可靠；水分仅 42 与 29 个表面单元在最初数十秒内不可靠）；问题 3 的 t_end 改报为"57.48 h（生产网格）/ 57.47 h（网格收敛极限）"并给出 0.41 min 的界；Richardson 外推改用实测观测阶。
+- 命题 4.2（离散极值原理）改用上 Dini 导数叙述，删去循环论证；假设 7 改为"径向均匀收缩（轴向长度不变）"。
+- 附录 C 的复现命令由 `\nolinkurl` 改为 `\texttt`（`\nolinkurl` 会吞掉空格使命令不可复制）；`_reproduce_md` 输出真实阶段串与 tag。
+- 图：`fig_properties` 纵轴限为可读范围、图例顺序统一、判据线加标注；`fig_sensitivity` 横轴收紧；技术路线图改为单一总线分四路。
+- 表 9（时间积分无关性）与表 12（模型评价扩展）移入附录，为结论节腾出版面。
+
+### Fixed
+- §4.5 关于 r ≤ 1 cm 处水分仍为初值的表述与表 3 矛盾；§2.2 与 §5.2 跨附录混用 D 与 Biot 数；§7.2 关于 result4.xlsx 留空方式的表述；§9.2 "22 倍"的先行词；摘要中缺单位、能量不变量缺条件、"无插值"对问题 4 不成立；nfev 22510/22528 的不自洽；三张图与六个编号公式未被正文引用。
+
+### Platform（`forge/`，最小改动）
+- `forge/xlsx.py`：`SheetContract` 增加 `first_col_step`、`header_values`、`header_value_columns`，使 qa 真正检查时间列步长与首行刻度；`result4.xlsx` 补 `header_len=23`。
+- `pipelines/common/stages.py`：复现记录表把"正在写该表的阶段"标注为 `completed*`；`REPRODUCE.md` 的复现命令由占位符改为真实阶段串与 tag。
+
 ## [0.9.0] - 2026-09-12
 
 ### Added

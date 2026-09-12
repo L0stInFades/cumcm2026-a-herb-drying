@@ -5,6 +5,7 @@ from __future__ import annotations
 import math
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
+from itertools import pairwise
 from pathlib import Path
 from typing import Any
 
@@ -186,7 +187,7 @@ def check_workbook(path: Path, contract: WorkbookContract, template: Path) -> di
             if len(first_col) != n:
                 errors.append(f"{sc.name}: {n - len(first_col)} rows without a numeric time value")
             else:
-                steps = [b - a for a, b in zip(first_col, first_col[1:])]
+                steps = [b - a for a, b in pairwise(first_col)]
                 off = [s for s in steps if abs(s - sc.first_col_step) > 1e-9]
                 if off:
                     errors.append(f"{sc.name}: {len(off)} time steps differ from {sc.first_col_step} (e.g. {off[0]})")

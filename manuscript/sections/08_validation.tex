@@ -65,7 +65,6 @@ T(\xi,t)=T_{\mathrm{air}}(t)+\sum_{m\ge1}c_m\Bigl[\bigl(T_0-T_{\mathrm{air}}(0)\
 \end{enumerate}
 问题 1 的常物性温度方程另有能量不变量，残差同量级。
 
-\paperfigure{fig_conservation.pdf}{离散水分存量的变化与积分器内累积的表面通量之差，按最终失水量归一：四个问题的相对残差全程保持在 $10^{-15}$ 量级（双精度舍入），确认离散格式严格守恒。}{fig:conservation}
 
 \paragraph{极值原理与单调性。} 校验器在全部输出时刻检查三项（命题~\ref{prop:extremum}）：(i) $T$ 与 $C$ 分别落在由初值和环境值张成的包络
 \[[\,\min(T_0,\min T_{\mathrm{air}}),\ \max(T_0,\max T_{\mathrm{air}})\,],\qquad [\,\min(C_0,\min C_{\mathrm{air}}),\ C_0\,]\]
@@ -85,26 +84,23 @@ T(\xi,t)=T_{\mathrm{air}}(t)+\sum_{m\ge1}c_m\Bigl[\bigl(T_0-T_{\mathrm{air}}(0)\
   \item \textbf{端部效应}：端面同样施加 Robin 条件时，中截面的水分浓度与一维解相差 \sci{\valEndEffectMidplaneDiff}，中心点在烘干时刻的差异为 \sci{\valEndEffectCentreDiffAtDry}，烘干时间由 $\valEndEffectDryHoursOneD$ h 变为 $\valEndEffectDryHoursTwoD$ h，相对变化 $\valEndEffectDryDiffPct\%$。
 \end{enumerate}
 
-端部效应之小与第~\ref{subsec:q1analysis} 小节的量级判断一致：水分的轴向 Fourier 数上界仅 $\valFoAxialMassUpper$，端面的影响来不及扩散到中截面。图~\ref{fig:endeffect} 显示轴向水分分布只在端面附近的薄层内偏离中截面值。因此假设~\ref{as:1d}（一维径向化）被定量确认。
+端部效应之小与第~\ref{subsec:q1analysis} 小节的量级判断一致：水分的轴向 Fourier 数上界仅 $\valFoAxialMassUpper$，端面的影响来不及扩散到中截面。图~\ref{fig:endeffect}（附录~\ref{app:figures}）显示轴向水分分布只在端面附近的薄层内偏离中截面值。因此假设~\ref{as:1d}（一维径向化）被定量确认。
 
-\paperfigure{fig_endeffect.pdf}{端部效应：一维烘干结束时刻二维模型中心线（$r=0$）上沿轴向的水分浓度分布（a）；一维解与二维解在中截面与端面处的中心水分时程（b）。端面附近的额外干燥只影响端部薄层，不影响中截面，烘干时间的相对变化仅 $\valEndEffectDryDiffPct\%$。}{fig:endeffect}
 
 \subsection{结果文件与表格的一致性检查}
 
-四个结果工作簿（以及补充交付的 \nolinkurl{result2\_全过程.xlsx}）由附件 3 的模板生成（不重建工作簿结构），并由自动契约逐项检查：工作表名称与模板一致、A1 文字与模板一致、首行的距离刻度落在 $0,0.5,1,1.5,2$ \si{\centi\meter} 的应有位置、表头单元数（\nolinkurl{result4.xlsx} 为 23，含“药材表面”列）、A 列时间的\textbf{步长与起点}（\SI{1}{\second}／\SI{60}{\second}）、行数区间、数值区无非数字单元、小数位不超过四位、问题 4 中且仅在超出当前半径处留空。全部契约检查通过（附录~\ref{app:repro}）。论文表格与结果文件由同一份求解结果生成，因此逐位一致：\nolinkurl{result3.xlsx} 共 $\valQthreeResultRows$ 个时间行、\nolinkurl{result4.xlsx} 共 $\valQfourResultRows$ 行。
+四个结果工作簿（以及补充交付的 \texttt{result2\_全过程.xlsx}）由附件 3 的模板生成（不重建工作簿结构），并由自动契约逐项检查：工作表名称与模板一致、A1 文字与模板一致、首行的距离刻度落在 $0,0.5,1,1.5,2$ \si{\centi\meter} 的应有位置、表头单元数（\nolinkurl{result4.xlsx} 为 23，含“药材表面”列）、A 列时间的\textbf{步长与起点}（\SI{1}{\second}／\SI{60}{\second}）、行数区间、数值区无非数字单元、小数位不超过四位、问题 4 中且仅在超出当前半径处留空。全部契约检查通过（附录~\ref{app:repro}）。论文表格与结果文件由同一份求解结果生成，因此逐位一致：\nolinkurl{result3.xlsx} 共 $\valQthreeResultRows$ 个时间行、\nolinkurl{result4.xlsx} 共 $\valQfourResultRows$ 行。
 
 \subsection{灵敏度与不确定性}
 \label{subsec:sensitivity}
 
-对六个可能存在不确定性的量分别取 $\times0.8,0.9,1.1,1.2$ 重新求解，以烘干时间 $t_{\mathrm{end}}$ 为指标，用 $\pm10\%$ 的中心差分估计弹性 $E_p=(\Delta t_{\mathrm{end}}/t_{\mathrm{end}})/(\Delta p/p)$（表~\ref{tab:sensitivity}、图~\ref{fig:sensitivity}）：
-
-\input{generated/tables/tab_sensitivity.tex}
+对六个可能存在不确定性的量分别取 $\times0.8,0.9,1.1,1.2$ 重新求解，以烘干时间 $t_{\mathrm{end}}$ 为指标，用 $\pm10\%$ 的中心差分估计弹性 $E_p=(\Delta t_{\mathrm{end}}/t_{\mathrm{end}})/(\Delta p/p)$（表~\ref{tab:sensitivity}，附录~\ref{app:tables}；图~\ref{fig:sensitivity}）：
 
 \paperfigure[0.72\linewidth]{fig_sensitivity.pdf}{烘干时间对各参数的弹性（$\pm10\%$ 中心差分）。负值表示参数增大使烘干变快。烘房温度平台、扩散系数前因子与收缩幅度是主导因素，对流换热系数几乎无影响。}{fig:sensitivity}
 
 \begin{enumerate}[leftmargin=*,itemsep=0.2em]
-  \item \textbf{烘房温度平台}的弹性最大（$\valElasTplateau$）：$D$ 的 Arrhenius 因子把温度的相对变化放大了 $E/T_K$ 倍（一个数量级以上）。表~\ref{tab:sensitivity} 给出平台值 $\times1.1$ 与 $\times1.2$ 时的烘干时间，缩短幅度相当可观；但实际工艺中提高温度受药材有效成分热稳定性的限制（第~\ref{sec:evaluation} 节）。
-  \item \textbf{扩散系数前因子} $D_0$ 的弹性为 $\valElasDzero$（问题 3）与 $\valElasDzeroQfour$（问题 4），接近 $-1$：这正是扩散控制过程的特征（$t\propto1/D$）。$D_0$ 是经验拟合量，其不确定性直接、几乎等比例地传递到烘干时间，是本模型最主要的参数不确定性来源。
+  \item \textbf{烘房温度平台}的弹性最大（$\valElasTplateau$）：$D$ 的 Arrhenius 因子把温度的相对变化放大了 $E/T_K$ 倍；但实际工艺中提高温度受有效成分热稳定性的限制（第~\ref{sec:evaluation} 节）。
+  \item \textbf{扩散系数前因子} $D_0$ 的弹性为 $\valElasDzero$（问题 3）与 $\valElasDzeroQfour$（问题 4），接近 $-1$，正是扩散控制过程的特征（$t\propto1/D$）；$D_0$ 是经验拟合量，其不确定性几乎等比例地传递到烘干时间，是最主要的参数不确定性来源。
   \item \textbf{收缩幅度} $s$ 定义为对\textbf{收缩量}的缩放：$R(t;s)=R_0-s\,[R_0-R_{\text{附件 2}}(t)]$，$s=1$ 即题给数据，$s=1.2$ 表示收缩量放大 $20\%$（末半径由 $\valQfourRadiusFinalCm$ 降到 $\valShrinkRadiusHighCm$ \si{\centi\meter}），$s=0.8$ 则升到 $\valShrinkRadiusLowCm$ \si{\centi\meter}。实测弹性 $\valElasShrink$，而由 $t\propto R_\infty^2$ 给出的标度预测为 $\dd\ln t/\dd\ln s=-2s(R_0-R_\infty)/R_\infty=\valShrinkScalingPrediction$；实测略小于预测，因为收缩需要时间完成，前期仍以较大的半径扩散。二者同号同量级，再次确认收缩通过缩短扩散路径起作用。
   \item \textbf{传质系数} $h_m$ 的弹性只有 $\valElasHm$，\textbf{换热系数} $h$ 几乎为零（$\valElasH$），\textbf{烘房湿度} $C_{\mathrm{air}}$ 为 $\valElasCair$。结论：在题给参数下，过程由内部扩散控制，强化外部对流（加大风速）对缩短烘干时间几乎无效。
 \end{enumerate}

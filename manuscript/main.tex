@@ -31,10 +31,10 @@
   subsection={format=\large\bfseries\sffamily},
   subsubsection={format=\normalsize\bfseries\sffamily},
 }
-\captionsetup{font=small,labelfont=bf,labelsep=quad,skip=6pt}
+\captionsetup{font=small,labelfont=bf,labelsep=quad,skip=4pt}
 \sisetup{detect-all,per-mode=symbol,range-phrase={--},range-units=single}
-\linespread{1.25}
-\setlength{\parskip}{0.15em}
+\linespread{1.13}
+\setlength{\parskip}{0.05em}
 \setlength{\parindent}{2em}
 \setlength{\emergencystretch}{1.5em}
 \renewcommand{\arraystretch}{1.12}
@@ -53,7 +53,7 @@
 \newtheorem{definition}[theorem]{定义}
 \newtheorem{assumption}{假设}
 \newtheorem{remark}[theorem]{注}
-\newcommand{\paperfigure}[4][0.84\linewidth]{\begin{figure}[htbp]\centering\includegraphics[width=#1]{#2}\caption{#3}\label{#4}\end{figure}}
+\newcommand{\paperfigure}[4][0.70\linewidth]{\begin{figure}[htbp]\centering\includegraphics[width=#1]{#2}\caption{#3}\label{#4}\end{figure}}
 \newcommand{\sci}[1]{\num{#1}}
 \makeatletter
 % 附录中的大表：浮动体内部的字号由 \@floatboxreset 重置，必须在此处改写才生效
@@ -112,13 +112,25 @@
 \appendix
 \section{补充表格}
 \label{app:tables}
-本附录收录正文引用的大型表格：网格收敛表（表~\ref{tab:convergence}）、与级数解的对照表（表~\ref{tab:analytic}）、烘干时间的网格收敛表（表~\ref{tab:convergence-drytime}）、结果文件完整输出网格上的误差表（表~\ref{tab:outputgrid}）、时间积分无关性表（表~\ref{tab:time-independence}）以及问题 4 备选写法的结果表（表~\ref{tab:q4-moist-alt}）。
+本附录收录正文引用的大型表格：网格收敛表（表~\ref{tab:convergence}）、与级数解的对照表（表~\ref{tab:analytic}）、烘干时间的网格收敛表（表~\ref{tab:convergence-drytime}）、结果文件完整输出网格上的误差表（表~\ref{tab:outputgrid}）、时间积分无关性表（表~\ref{tab:time-independence}）问题 4 备选写法的结果表（表~\ref{tab:q4-moist-alt}）模型评价扩展的结果表（表~\ref{tab:extension}）以及灵敏度重解表（表~\ref{tab:sensitivity}）。
 \smalltable[\scriptsize]{generated/tables/tab_convergence.tex}
 \smalltable{generated/tables/tab_analytic.tex}
 \smalltable{generated/tables/tab_convergence_drytime.tex}
 \smalltable[\scriptsize]{generated/tables/tab_outputgrid.tex}
 \smalltable{generated/tables/tab_time_independence.tex}
 \smalltable{generated/tables/tab_q4_moist_alt.tex}
+\smalltable{generated/tables/tab_extension.tex}
+\smalltable{generated/tables/tab_sensitivity.tex}
+\FloatBarrier
+
+\FloatBarrier
+
+\section{补充图形}
+\label{app:figures}
+本附录收录第~\ref{sec:validation} 节与第~\ref{sec:evaluation} 节引用的三张支撑性图形。
+\paperfigure{fig_conservation.pdf}{离散水分存量的变化与积分器内累积的表面通量之差，按最终失水量归一：四个问题的相对残差全程保持在 $10^{-15}$ 量级（双精度舍入），确认离散格式严格守恒。}{fig:conservation}
+\paperfigure{fig_endeffect.pdf}{端部效应：一维烘干结束时刻二维模型中心线（$r=0$）上沿轴向的水分浓度分布（a）；一维解与二维解在中截面与端面处的中心水分时程（b）。端面附近的额外干燥只影响端部薄层，不影响中截面，烘干时间的相对变化仅 $\valEndEffectDryDiffPct\%$。}{fig:endeffect}
+\paperfigure{fig_extension.pdf}{模型评价扩展：(a) 题给模型蒸发率所对应的潜热等效温降 $L_vj_w/h$ 与模型实际的表面温差 $T_{\mathrm{air}}-T_s$（纵轴对数坐标，点线为 \SI{1}{\kelvin}）——前十余小时前者远大于后者，说明题给能量方程未支付蒸发潜热；(b) 题给模型、能量限制情形与三档平衡含水率驱动力下的中心水分浓度时程，点线为判据 \SI{0.15}{\kilo\gram\per\kilo\gram}。图 (a) 中模型温差在 \SIrange{2}{4}{\hour} 间因烘房温度样本的波动（末 \SI{1}{\hour} 内相邻样本最大差 $\valChamberPlateauStepMax$ \si{\kelvin}）而在零附近改变符号，负值在对数坐标下被截断，故呈现振荡带。}{fig:extension}
 \FloatBarrier
 
 \section{支撑材料文件清单}

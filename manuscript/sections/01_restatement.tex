@@ -1,17 +1,13 @@
-\subsection{问题背景}
-干燥是决定中药成品品质的关键工序之一，热风烘干是其中常见的方式。烘干过程主要包括\textbf{预热平衡}与\textbf{恒温干燥}两个阶段：通过调控烘房的温湿环境，使药材内部水分向表面迁移并被气流带走。工艺参数选取不当会导致干燥效率低、能耗高、成品质量不稳定；传统的试验优化模式成本高、周期长，因此需要借助数理分析与数值仿真获得干燥规律。
-
-待干燥的药材形状近似为圆柱体，长 $L=\SI{25}{\centi\meter}$，初始半径 $R_0=\SI{2}{\centi\meter}$。烘干开始时药材温度均匀为 $T_0=\SI{28}{\celsius}$，水分浓度（干基含水率）均匀为 $C_0=\SI{2.55}{\kilo\gram\per\kilo\gram}$。烘房温度 $T_{\mathrm{air}}(t)$ 与水分浓度 $C_{\mathrm{air}}(t)$ 由附件 1 给出（$0$--$\SI{14400}{\second}$，每 \SI{60}{\second} 一个样本，共 $\valChamberSamples$ 个）；药材半径 $R(t)$ 由附件 2 给出（$0$--\SI{72}{\hour}，每 \SI{1800}{\second} 一个样本，共 $\valRadiusSamples$ 个，由 $\SI{2.000}{\centi\meter}$ 单调减至 $\SI{1.198}{\centi\meter}$）。药材的密度 $\rho$、比热容 $c_p$、热传导系数 $k$ 与水分浓度扩散系数 $D$ 由附录 2--4 的经验公式给出，其中 $D$ 随含水率 $C$（以及问题 2--4 中的温度 $T$）呈指数变化。
+\subsection{问题背景与数据}
+干燥是决定中药成品品质的关键工序，热风烘干通过调控烘房温湿环境使药材内部水分向表面迁移并被气流带走，过程包含\textbf{预热平衡}与\textbf{恒温干燥}两个阶段。待干燥药材近似为圆柱体，长 $L=\SI{25}{\centi\meter}$、初始半径 $R_0=\SI{2}{\centi\meter}$；初始时刻温度均匀为 $T_0=\SI{28}{\celsius}$、水分浓度（干基含水率）均匀为 $C_0=\SI{2.55}{\kilo\gram\per\kilo\gram}$。烘房温度 $T_{\mathrm{air}}(t)$ 与水分浓度 $C_{\mathrm{air}}(t)$ 由附件 1 给出（$0$--\SI{14400}{\second}，每 \SI{60}{\second} 一个样本，共 $\valChamberSamples$ 个）；药材半径 $R(t)$ 由附件 2 给出（$0$--\SI{72}{\hour}，每 \SI{1800}{\second} 一个样本，共 $\valRadiusSamples$ 个，由 $\SI{2.000}{\centi\meter}$ 单调减至 $\valQfourRadiusFinalCm$ \si{\centi\meter}）。密度 $\rho$、比热容 $c_p$、热传导系数 $k$ 与水分浓度扩散系数 $D$ 由附录 2--4 的经验公式给出，其中 $D$ 随含水率 $C$（问题 2--4 中还随温度 $T$）呈指数变化。
 
 \subsection{待解决的问题}
-\begin{enumerate}[label=\textbf{问题 \arabic*},leftmargin=*,labelsep=1em,itemsep=0.3em]
-  \item \textbf{（预热平衡阶段）} 采用附录 2 的常物性参数（$\rho=\SI{820}{\kilo\gram\per\cubic\meter}$、$c_p=\SI{2600}{\joule\per\kilo\gram\per\kelvin}$、$k=\SI{0.36}{\watt\per\meter\per\kelvin}$、$h=\SI{25}{\watt\per\square\meter\per\kelvin}$、$h_m=\SI{8e-7}{\meter\per\second}$、$D=7\times10^{-9}\mathrm{e}^{-0.89/C}$），建立预热平衡阶段药材温度与水分浓度变化规律的模型，给出 $t\in\{100,300,600,900,1200,1500,1800\}$ \si{\second} 与 $r\in\{0,0.5,1,1.5,2\}$ \si{\centi\meter} 处的结果（表~\ref{tab:q1-temp}、表~\ref{tab:q1-moist}），并把 \SI{1800}{\second} 内每隔 \SI{1}{\second}、每隔 \SI{0.1}{\centi\meter} 的完整结果写入 \nolinkurl{result1.xlsx}。
-  \item \textbf{（全过程模型）} 烘干过程一般持续 2--3 天，预热平衡与恒温干燥阶段的参数有所不同；统一采用附录 3 的变物性经验公式建立整个烘干过程的模型，给出 \SI{3}{\hour} 内每隔 \SI{0.5}{\hour} 的结果（表~\ref{tab:q2-temp}、表~\ref{tab:q2-moist}），完整结果写入 \nolinkurl{result2.xlsx}。
-  \item \textbf{（烘干时长）} 按照烘干要求，药材\textbf{各处}的水分浓度应低于 \SI{0.15}{\kilo\gram\per\kilo\gram}，确定烘干所需的时间（单位：h），给出每隔 \SI{6}{\hour}、每隔 \SI{0.5}{\centi\meter} 的水分浓度（表~\ref{tab:q3-moist}，含“烘干结束时间”行），完整结果（每 \SI{60}{\second}、每 \SI{0.1}{\centi\meter}）写入 \nolinkurl{result3.xlsx}。
-  \item \textbf{（尺寸变化）} 实际烘干中药材因水分流失发生尺寸变化；根据附件 2 给出的 $R(t)$ 与附录 4 的物性公式确定烘干时长，按表~\ref{tab:q4-moist} 的格式给出每隔 \SI{6}{\hour} 的水分浓度（含“药材表面”列），完整结果写入 \nolinkurl{result4.xlsx}。
-\end{enumerate}
+\textbf{问题 1}（预热平衡阶段，附录 2 常物性 $+\,D(C)$）：建立 $0$--\SI{1800}{\second} 内温度与水分浓度的变化模型，按表~\ref{tab:q1-temp}、表~\ref{tab:q1-moist} 的格式给出 $t\in\{100,\dots,1800\}$ \si{\second}、$r\in\{0,0.5,1,1.5,2\}$ \si{\centi\meter} 处的结果，完整结果（每 \SI{1}{\second}、每 \SI{0.1}{\centi\meter}）写入 \nolinkurl{result1.xlsx}。
+\textbf{问题 2}（整个烘干过程，统一采用附录 3 的变物性公式）：给出 \SI{3}{\hour} 内每 \SI{0.5}{\hour} 的结果（表~\ref{tab:q2-temp}、表~\ref{tab:q2-moist}），完整结果写入 \nolinkurl{result2.xlsx}。
+\textbf{问题 3}（烘干时长）：按“药材\textbf{各处}水分浓度低于 \SI{0.15}{\kilo\gram\per\kilo\gram}”确定烘干所需时间，给出每 \SI{6}{\hour}、每 \SI{0.5}{\centi\meter} 的水分浓度（表~\ref{tab:q3-moist}，含“烘干结束时间”行），完整结果（每 \SI{60}{\second}、每 \SI{0.1}{\centi\meter}）写入 \nolinkurl{result3.xlsx}。
+\textbf{问题 4}（尺寸变化）：按附件 2 的 $R(t)$ 与附录 4 的物性确定烘干时长，按表~\ref{tab:q4-moist} 的格式给出结果（含“药材表面”列），完整结果写入 \nolinkurl{result4.xlsx}。
 
-所有结果保留四位小数；结果文件的 A 列为时间（\si{\second}），第 1 行为到药材中心的距离（\si{\centi\meter}）。本文四个结果文件均由附件 3 的模板生成，格式与模板逐格一致（见第~\ref{sec:validation} 节与附录~\ref{app:repro}）。
+所有结果保留四位小数；结果文件的 A 列为时间（\si{\second}），第 1 行为到药材中心的距离（\si{\centi\meter}）。本文的结果文件均由附件 3 的模板生成，格式与模板逐格一致（第~\ref{sec:validation} 节与附录~\ref{app:repro}）。
 
 \subsection{题目中需要解释的五处不确定性}
 \label{subsec:ambiguity}
@@ -22,5 +18,5 @@
   \item \textbf{附件 1 之外的烘房状态}：问题 3、4 的烘干持续数十小时，超出附件 1 的 \SI{4}{\hour} 覆盖范围。本文在样本之间线性插值，在 \SI{14400}{\second} 之后取恒温干燥阶段的平台值 $T_{\mathrm{air}}=\valQthreeAirTempPlateau\,^\circ$C、$C_{\mathrm{air}}=\valQthreeAirHumPlateau$ kg/kg（末 \SI{1}{\hour} 样本均值）。
   \item \textbf{收缩域上方程的写法}：附件 2 的 $R(t)$ 只给出几何，未说明被边界“扫过”的物质如何处理。本文以干物质守恒的物质（Lagrangian）坐标为主模型，并给出实验室坐标（Eulerian）写法的对照结果。
   \item \textbf{水分守恒的写法}：题目给出“水分浓度扩散系数”$D$ 却未写出水分方程。本文取干基 Fick 形式 $\partial_tC=\nabla\!\cdot\!(D\nabla C)$；它在固定体积、干物质守恒的前提下\textbf{就是}守恒律本身（第~\ref{subsec:governing} 小节）。若改把附录给出的 $\rho(C)$ 读作真实湿密度、从而令干物质表观密度 $\rho_s=\rho/(1+C)$ 随 $C$ 变化，则应取守恒型写法 $\partial_t(\rho_sC)=\nabla\!\cdot\!(\rho_sD\nabla C)$，烘干时间变为 $\valAltMassConservativeHours$ h（$\valAltMassConservativePct\%$，MDR-0010）——这是除判据表述外最大的单项解释不确定性。
-  \item \textbf{\nolinkurl{result2.xlsx} 的时间范围}：问题 2 要求“整个烘干过程”的模型，但在“完整结果”前未像问题 1 那样写出时间上限。本文按与表 3、表 4 一致的 \SI{3}{\hour} 每 \SI{1}{\second} 交付 \nolinkurl{result2.xlsx}，并\textbf{另行交付} \nolinkurl{result2\_全过程.xlsx}（同一模板、温度与水分浓度两张表、覆盖 $0$--$t_{\mathrm{end}}$、分辨率 \SI{60}{\second}），使两种读法都有对应的交付物（第~\ref{subsec:q2range} 小节）。
+  \item \textbf{\nolinkurl{result2.xlsx} 的时间范围}：问题 2 要求“整个烘干过程”的模型，但在“完整结果”前未像问题 1 那样写出时间上限。本文按与表 3、表 4 一致的 \SI{3}{\hour} 每 \SI{1}{\second} 交付 \nolinkurl{result2.xlsx}，并\textbf{另行交付} \texttt{result2\_全过程.xlsx}（同一模板、温度与水分浓度两张表、覆盖 $0$--$t_{\mathrm{end}}$、分辨率 \SI{60}{\second}），使两种读法都有对应的交付物（第~\ref{subsec:q2range} 小节）。
 \end{enumerate}

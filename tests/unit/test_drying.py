@@ -17,6 +17,7 @@ from pipelines.a.physics import (
     APPENDIX3,
     APPENDIX4,
     C_INIT,
+    C_TARGET,
     R0,
     T_INIT,
     Chamber,
@@ -149,12 +150,17 @@ def test_lagrangian_shrinkage_conserves_dry_basis_water() -> None:
 def test_solve_until_dry_detects_the_crossing_consistently() -> None:
     props = replace(APPENDIX2, d0=7e-7)  # fast drying for the test
     spec = ProblemSpec(props, Chamber.constant(50.0, 0.05), Radius.constant())
-    sol = solve_until_dry(spec, 20, 60.0, horizon=3600.0)
+    sol = solve_until_dry(spec, 20, 60.0, horizon=3600.0, display_decimals=None)
     assert sol.t_dry is not None and sol.dry_profile is not None
     checks = verify.drying_checks(sol.t, sol.moist, sol.t_dry, sol.dry_profile)
     assert checks["rows_before_all_wet"] and checks["rows_after_all_dry"]
     assert checks["profile_max_error_at_t_dry"] < 1e-6
     assert sol.t[-1] == pytest.approx(60.0 * math.ceil(sol.t_dry / 60.0))
+    # with the display rule (MDR-0005) the last row must show every value below the target at four decimals
+    shown = solve_until_dry(spec, 20, 60.0, horizon=3600.0)
+    assert shown.t[-1] >= 60.0 * math.ceil(shown.t_dry / 60.0)
+    assert round(float(shown.moist[-1].max()), 4) < C_TARGET
+    assert round(float(shown.moist[-2].max()), 4) >= C_TARGET or shown.t[-1] == 60.0 * math.ceil(shown.t_dry / 60.0)
 
 
 def test_subgrid_and_physical_sampling() -> None:

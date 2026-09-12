@@ -240,8 +240,9 @@ def tables(ctx: StageContext) -> dict[str, Any]:
         digits=[0, 0, 4, 0, 0, 0],
         align="llrrrr",
         note="“自收敛阶”$p_k=\\log_2(e_k/e_{k+1})$ 以最细网格为参照，最后一对网格被系统性抬高 "
-        "$\\log_2[(1-4^{-(m-k)})/(1-4^{-(m-k-1)})]$（二阶格式在 $m-k=2$ 时为 2.32）；"
-        "“三网格阶”$p_k=\\log_2(\\lVert u_k-u_{k+1}\\rVert_\\infty/\\lVert u_{k+1}-u_{k+2}\\rVert_\\infty)$ 不需要参照解，无此偏置（MDR-0011）。",
+        "$\\log_2[(1-4^{-(m-k)})/(1-4^{-(m-k-1)})]$（二阶格式在 $m-k=2$ 时为 2.32）；“三网格阶”"
+        "$p_k=\\log_2(\\lVert u_k-u_{k+1}\\rVert_\\infty/\\lVert u_{k+1}-u_{k+2}\\rVert_\\infty)$ "
+        "不需要参照解，无此偏置（MDR-0011）。",
     )
     rows_d = []
     for prob, label in (("q3", "问题 3"), ("q4", "问题 4")):
@@ -381,7 +382,16 @@ def tables(ctx: StageContext) -> dict[str, Any]:
             "tab_outputgrid",
             "结果文件完整输出网格（每 1 s $\\times$ 每 0.1 cm）上的离散误差与四位小数的可靠性",
             "tab:outputgrid",
-            ["量", "单元数", "最大误差", "误差最大处", "三网格阶", "误差 $>5\\times10^{-5}$ 的单元", "最后一处/s", "此后最大误差"],
+            [
+                "量",
+                "单元数",
+                "最大误差",
+                "误差最大处",
+                "三网格阶",
+                "误差 $>5\\times10^{-5}$ 的单元",
+                "最后一处/s",
+                "此后最大误差",
+            ],
             rows_og,
             digits=[0, 0, 0, 0, 0, 0, 0, 0],
             align="lrrlrrrr",

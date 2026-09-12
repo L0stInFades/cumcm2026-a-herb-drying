@@ -195,7 +195,7 @@ D=2.4\times10^{-3}\,\mathrm{e}^{-0.45/C}\,\mathrm{e}^{-3850/T_K},
 数值方法与第~\ref{subsec:fv}、\ref{subsec:time} 小节完全相同，只更换物性函数。
 
 \paragraph{交付文件的时间范围（第~\ref{subsec:ambiguity} 小节第 (e) 处解释）。}\label{subsec:q2range}
-问题 2 要求“整个烘干过程”的模型，但在“完整结果”前未像问题 1 那样写出时间上限，故有两种读法。本文的模型对两种读法是同一个：问题 2 与问题 3 是\textbf{同一个}初边值问题（附录 3 物性、固定半径）在不同积分区间上的解，校验器在两次求解共有的 $\valHorizonSharedInstants$ 个 \SI{60}{\second} 整点上实测其最大差异为 \sci{\valHorizonDiffMoist} \si{\kilo\gram\per\kilo\gram}（水分）与 \sci{\valHorizonDiffTemp} \si{\celsius}（温度），即积分容差量级。交付上：\nolinkurl{result2.xlsx} 按与表 3、表 4 一致的 $0$--\SI{3}{\hour} 每 \SI{1}{\second} 给出（$10\,800$ 行 $\times$ 两张表）；若按全过程每 \SI{1}{\second} 输出则为 $206\,940$ 行、实测 \SI{57.3}{\mega\byte}，超出提交与支撑材料的规模预算，因此另行交付 \nolinkurl{result2\_全过程.xlsx}——同一模板、同样的“温度”“水分浓度”两张表、覆盖 $0$--$t_{\mathrm{end}}$、分辨率 \SI{60}{\second}（即题目在问题 3、4 中对全过程所采用的分辨率）。两种读法都有对应的交付物（MDR-0005）。
+问题 2 要求“整个烘干过程”的模型，但在“完整结果”前未像问题 1 那样写出时间上限，故有两种读法。本文的模型对两种读法是同一个：问题 2 与问题 3 是\textbf{同一个}初边值问题（附录 3 物性、固定半径）在不同积分区间上的解，校验器在两次求解共有的 $\valHorizonSharedInstants$ 个 \SI{60}{\second} 整点上实测其最大差异为 \sci{\valHorizonDiffMoist} \si{\kilo\gram\per\kilo\gram}（水分）与 \sci{\valHorizonDiffTemp} \si{\celsius}（温度），即积分容差量级。交付上：\nolinkurl{result2.xlsx} 按与表 3、表 4 一致的 $0$--\SI{3}{\hour} 每 \SI{1}{\second} 给出（$10\,800$ 行 $\times$ 两张表）；若按全过程每 \SI{1}{\second} 输出则为 $206\,940$ 行、实测 \SI{57.3}{\mega\byte}，超出提交与支撑材料的规模预算，因此另行交付 \texttt{result2\_全过程.xlsx}——同一模板、同样的“温度”“水分浓度”两张表、覆盖 $0$--$t_{\mathrm{end}}$、分辨率 \SI{60}{\second}（即题目在问题 3、4 中对全过程所采用的分辨率）。两种读法都有对应的交付物（MDR-0005）。
 
 \subsection{结果与分析}
 
