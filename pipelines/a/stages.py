@@ -16,7 +16,7 @@ from typing import Any
 
 from forge.context import StageContext
 from forge.runner import stage
-from pipelines.a import figures, outputs, science  # noqa: F401 - registers the stages on import
+from pipelines.a import extension, figures, outputs, science  # noqa: F401 - registers the stages on import
 from pipelines.a.contracts import INPUT_CONTRACTS
 from pipelines.common.validation import run_validation
 

@@ -85,6 +85,7 @@ def moisture_balance(
     air_hum: np.ndarray,
     hm: float,
     cum_loss: np.ndarray | None = None,
+    flux: np.ndarray | None = None,
 ) -> dict[str, Any]:
     """Discrete water inventory W = sum_i vol_i C_i versus the time-integrated surface flux.
 
@@ -92,10 +93,11 @@ def moisture_balance(
     ``sampled``: flux from the output samples (trapezoid rule, limited by the output spacing);
     ``exact``: flux accumulated inside the integrator (``cum_loss`` = int hm (C_s - C_air)/R dt), which turns the
     balance into a linear invariant of the ODE system and therefore tests the scheme itself.
+    ``flux`` overrides the boundary loss law hm (C_s - C_air) (e.g. the energy-capped law of MDR-0008).
     """
     vol = control_volumes(xi)
     inventory = moist @ vol
-    flux = hm * (moist[:, -1] - air_hum)
+    flux = hm * (moist[:, -1] - air_hum) if flux is None else np.asarray(flux, dtype=float)
     if np.allclose(radius, radius[0]):
         lhs = radius[0] ** 2 * (inventory - inventory[0])
         integrand = -radius[0] * flux

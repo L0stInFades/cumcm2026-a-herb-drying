@@ -14,6 +14,7 @@ from pipelines.a.physics import (
     APPENDIX4,
     R0,
     Chamber,
+    FluxCap,
     Properties,
     Radius,
 )
@@ -145,12 +146,22 @@ def spec_to_recipe(spec: ProblemSpec) -> dict[str, Any]:
         "face_scheme": spec.face_scheme,
         "t_init": spec.t_init,
         "c_init": spec.c_init,
+        "flux_cap": None
+        if spec.flux_cap is None
+        else {
+            "t": spec.flux_cap.t.tolist(),
+            "cap": spec.flux_cap.cap.tolist(),
+            "plateau": spec.flux_cap.plateau,
+            "rho_s": spec.flux_cap.rho_s,
+            "scale": spec.flux_cap.scale,
+        },
     }
 
 
 def spec_from_recipe(recipe: dict[str, Any]) -> ProblemSpec:
     ch = recipe["chamber"]
     rd = recipe["radius"]
+    fc = recipe.get("flux_cap")
     return ProblemSpec(
         props=Properties(**recipe["props"]),
         chamber=Chamber(
@@ -167,4 +178,13 @@ def spec_from_recipe(recipe: dict[str, Any]) -> ProblemSpec:
         face_scheme=str(recipe["face_scheme"]),
         t_init=float(recipe["t_init"]),
         c_init=float(recipe["c_init"]),
+        flux_cap=None
+        if fc is None
+        else FluxCap(
+            np.asarray(fc["t"], float),
+            np.asarray(fc["cap"], float),
+            float(fc["plateau"]),
+            float(fc["rho_s"]),
+            float(fc["scale"]),
+        ),
     )

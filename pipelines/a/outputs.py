@@ -113,7 +113,7 @@ def _load(path: Path) -> Any:
 
 @stage(
     "tables",
-    deps=("q1", "q2", "q3", "q4", "convergence", "verification", "sensitivity"),
+    deps=("q1", "q2", "q3", "q4", "convergence", "verification", "sensitivity", "extension"),
     description="LaTeX (booktabs) tables of the paper with CSV twins",
 )
 def tables(ctx: StageContext) -> dict[str, Any]:
@@ -350,6 +350,36 @@ def tables(ctx: StageContext) -> dict[str, Any]:
         rows_alt,
         digits=[0, 2, 2],
         align="lrr",
+    )
+    # model-evaluation extension (MDR-0008)
+    ext = _load(ctx.dep("extension") / "extension.json")
+    rows_e: list[list[Any]] = [["题给模型（主结果）", "--", ext["base_t_dry_h"], 0.0]]
+    for row in ext["variants"]:
+        if row["case"] == "cap":
+            name = f"蒸发通量受能量限制（湿球极限 $\\times{row['value']:g}$）"
+            param = f"$j_{{\\max}}={row['cap_plateau_kg_m2_h']:.3f}$ kg/(m$^2\\cdot$h)"
+        else:
+            name = "驱动力取 $C_s-C_{\\mathrm{eq}}$（平衡含水率）"
+            param = f"$C_{{\\mathrm{{eq}}}}={row['value']:g}$ kg/kg"
+        rows_e.append([name, param, row["t_dry_h"], row["diff_pct"]])
+    rows_e.append(
+        [
+            "纯能量下界（全程按湿球极限蒸发）",
+            f"$j_{{\\max}}={ext['psychrometrics']['plateau']['flux_cap'] * HOUR:.3f}$ kg/(m$^2\\cdot$h)",
+            ext["energy_bound_h"],
+            100.0 * (ext["energy_bound_h"] / ext["base_t_dry_h"] - 1.0),
+        ]
+    )
+    _write_table(
+        ctx,
+        "tab_extension",
+        "模型评价扩展（MDR-0008，问题 3 设定）：能量限制与平衡含水率驱动力下的烘干时间及相对主结果的变化",
+        "tab:extension",
+        ["情形", "参数", "$t_{\\mathrm{end}}$/h", "变化/\\%"],
+        rows_e,
+        digits=[0, 0, 2, 1],
+        align="llrr",
+        note="湿球极限 $j_{\\max}=h\\,(T_{\\mathrm{air}}-T_{\\mathrm{wb}})/L_v$ 随烘房状态变化，表中给出恒温阶段的值。",
     )
     written = sorted(p.name for p in (ctx.stage_dir / "tables").glob("*.tex"))
     return {"tables": len(written), "files": written}

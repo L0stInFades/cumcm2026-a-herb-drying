@@ -63,7 +63,7 @@ def _history(ax: Any, hist: dict[str, Any], keys: list[tuple[str, str]], unit: s
 
 @stage(
     "figures",
-    deps=("ingest", "q1", "q2", "q3", "q4", "convergence", "verification", "sensitivity"),
+    deps=("ingest", "q1", "q2", "q3", "q4", "convergence", "verification", "sensitivity", "extension"),
     description="Paper figures: data, properties, profiles/histories of q1-q4, convergence, verification, sensitivity",
 )
 def figures(ctx: StageContext) -> dict[str, Any]:
@@ -414,6 +414,58 @@ def figures(ctx: StageContext) -> dict[str, Any]:
         "fig_endeffect",
         index,
         "端部效应：一维烘干结束时刻二维模型中心线沿轴向的水分（a）；一维与二维（中截面、端面）中心水分时程（b）",
+    )
+
+    # 13. model-evaluation extension (MDR-0008) ---------------------------------------------------
+    ext = _load(ctx.dep("extension") / "extension.json")
+    dg = np.load(ctx.dep("extension") / "diagnostic.npz")
+    va = np.load(ctx.dep("extension") / "variants.npz")
+    hist3 = _load(ctx.dep("q3") / "history.json")
+    fig, axes = plotting.new_figure(6.3, 2.9, ncols=2)
+    t = dg["t"] / HOUR
+    axes[0].semilogy(t, np.maximum(dg["dt_lat"], 1e-3), color=CAT[1], lw=1.4, label="潜热等效温降 $L_v j_w/h$")
+    axes[0].semilogy(
+        t, np.maximum(dg["model_dt"], 1e-3), color=CAT[0], lw=1.4, label="题给模型 $T_{\\mathrm{air}}-T_s$"
+    )
+    axes[0].axhline(1.0, color=MUTED, ls=":", lw=1)
+    axes[0].set_ylim(1e-3, 2e2)
+    axes[0].set_xlabel("时间 / h")
+    axes[0].set_ylabel("温差 / K")
+    axes[0].legend(frameon=False, fontsize=7)
+    axes[1].plot(
+        np.asarray(hist3["t"]) / HOUR,
+        hist3["centre_moist"],
+        color=CAT[0],
+        lw=1.4,
+        label=f"题给模型: {ext['base_t_dry_h']:.1f} h",
+    )
+    styles = {"cap": ("--", CAT[1]), "ceq": ("-.", CAT[2])}
+    shown = [v for v in ext["variants"] if (v["case"] == "cap" and v["value"] == 1.0) or v["case"] == "ceq"]
+    ceq_colors = [CAT[2], CAT[3], CAT[4], CAT[5]]
+    k = 0
+    for v in shown:
+        ls, color = styles[v["case"]]
+        if v["case"] == "ceq":
+            color = ceq_colors[k % len(ceq_colors)]
+            k += 1
+            label = f"$C_{{\\mathrm{{eq}}}}={v['value']:g}$: {v['t_dry_h']:.1f} h"
+        else:
+            label = f"能量限制（湿球极限）: {v['t_dry_h']:.1f} h"
+        axes[1].plot(
+            va[f"{v['slug']}__t"] / HOUR, va[f"{v['slug']}__centre_moist"], ls, color=color, lw=1.3, label=label
+        )
+    axes[1].axhline(C_TARGET, color=MUTED, ls=":", lw=1)
+    axes[1].set_xlabel("时间 / h")
+    axes[1].set_ylabel("中心水分浓度 / (kg/kg)")
+    axes[1].legend(frameon=False, fontsize=7)
+    for ax, tag in zip(axes, "ab"):
+        ax.set_title(f"({tag})", loc="left", fontsize=9)
+    _finish(
+        ctx,
+        fig,
+        "fig_extension",
+        index,
+        "模型评价扩展：题给模型蒸发率的潜热等效温降与模型实际温差（a）；能量限制与平衡含水率驱动力下的中心水分时程（b）",
     )
 
     ctx.write_json("figure_index.json", index)

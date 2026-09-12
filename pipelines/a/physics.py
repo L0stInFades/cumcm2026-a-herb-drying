@@ -197,3 +197,104 @@ def biot_numbers(props: Properties, c: float, t_degc: float, r: float = R0) -> d
         "alpha": thermal_diffusivity(props, c),
         "D": float(props.diffusivity(cc, np.asarray(t_degc))),
     }
+
+
+# ----------------------------------------------------------------------------------------------
+# Psychrometrics and the energy-limited evaporation cap (model-evaluation extension, MDR-0008)
+# ----------------------------------------------------------------------------------------------
+
+P_ATM = 101325.0  # Pa
+L_REF = 2.501e6  # J/kg, latent heat of vaporisation of water at 0 degC
+L_SLOPE = 2361.0  # J/(kg K), linear decrease of the latent heat with temperature (0-100 degC)
+
+
+def latent_heat(t_degc: Any) -> Any:
+    """Latent heat of vaporisation of water, J/kg (linear fit to the steam tables, 0-100 degC)."""
+    return L_REF - L_SLOPE * np.asarray(t_degc, dtype=float)
+
+
+def saturation_pressure(t_degc: Any) -> Any:
+    """Saturation vapour pressure over liquid water, Pa (Magnus form, Alduchov and Eskridge 1996)."""
+    t = np.asarray(t_degc, dtype=float)
+    return 610.94 * np.exp(17.625 * t / (t + 243.04))
+
+
+def humidity_ratio(p_vapour: Any, p_total: float = P_ATM) -> Any:
+    """Humidity ratio (kg water per kg dry air) of moist air with vapour partial pressure ``p_vapour``."""
+    pv = np.asarray(p_vapour, dtype=float)
+    return 0.622 * pv / (p_total - pv)
+
+
+def vapour_pressure(w: Any, p_total: float = P_ATM) -> Any:
+    """Vapour partial pressure, Pa, of moist air with humidity ratio ``w``."""
+    ww = np.asarray(w, dtype=float)
+    return ww * p_total / (0.622 + ww)
+
+
+def relative_humidity(t_degc: Any, w: Any) -> Any:
+    """Relative humidity (0-1) of air at dry-bulb temperature ``t_degc`` with humidity ratio ``w``."""
+    return vapour_pressure(w) / saturation_pressure(t_degc)
+
+
+def wet_bulb_temperature(t_degc: float, w: float) -> float:
+    """Thermodynamic wet-bulb (adiabatic-saturation) temperature, degC.
+
+    ASHRAE Handbook - Fundamentals (2017), chapter 1, eq. (33), temperatures in degC and energies in kJ/kg:
+    w = ((2501 - 2.326 t*) w_s(t*) - 1.006 (t - t*)) / (2501 + 1.86 t - 4.186 t*). Saturated air returns t.
+    """
+    from scipy.optimize import brentq
+
+    t = float(t_degc)
+    target = float(w)
+
+    def residual(tw: float) -> float:
+        ws = float(humidity_ratio(saturation_pressure(tw)))
+        return ((2501.0 - 2.326 * tw) * ws - 1.006 * (t - tw)) / (2501.0 + 1.86 * t - 4.186 * tw) - target
+
+    if residual(t) <= 0.0:
+        return t
+    return float(brentq(residual, -40.0, t, xtol=1e-10, maxiter=200))
+
+
+def dry_solid_density(props: Properties, c: Any) -> Any:
+    """Dry-matter density rho_s = rho(C)/(1 + C), kg/m^3 (bulk density per unit of dry-basis moisture)."""
+    cc = np.asarray(c, dtype=float)
+    return props.rho(cc) / (1.0 + cc)
+
+
+@dataclass(frozen=True)
+class FluxCap:
+    """Upper bound on the surface evaporation mass flux, kg/(m^2 s), sampled on the chamber history.
+
+    ``value(t)`` interpolates linearly between the samples and holds ``plateau`` afterwards; ``rho_s`` converts
+    the bound into the (kg/kg) m/s units of the moisture boundary condition; ``scale`` multiplies the bound.
+    """
+
+    t: np.ndarray
+    cap: np.ndarray
+    plateau: float
+    rho_s: float
+    scale: float = 1.0
+
+    @classmethod
+    def wet_bulb(cls, chamber: Chamber, h: float, rho_s: float, scale: float = 1.0) -> FluxCap:
+        """Energy limit h (T_air - T_wb)/L_v(T_wb) of a surface held at the wet-bulb temperature."""
+
+        def bound(temp: float, hum: float) -> float:
+            tw = wet_bulb_temperature(temp, hum)
+            return float(h * (temp - tw) / latent_heat(tw))
+
+        caps = np.array([bound(float(a), float(b)) for a, b in zip(chamber.temp, chamber.hum_scale * chamber.hum)])
+        plateau = bound(chamber.temp_plateau * chamber.temp_scale, chamber.hum_plateau * chamber.hum_scale)
+        return cls(np.asarray(chamber.t, dtype=float), caps, plateau, rho_s, scale)
+
+    def value(self, t: Any) -> Any:
+        return self.scale * np.interp(t, self.t, self.cap, right=self.plateau)
+
+    def describe(self) -> dict[str, Any]:
+        return {
+            "cap_initial": float(self.cap[0]) * self.scale,
+            "cap_plateau": self.plateau * self.scale,
+            "rho_s": self.rho_s,
+            "scale": self.scale,
+        }

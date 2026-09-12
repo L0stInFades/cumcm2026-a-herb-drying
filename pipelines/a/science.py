@@ -75,7 +75,14 @@ def _store_solution(ctx: StageContext, sol: Solution, spec: ProblemSpec, snapsho
 
 def _checks(spec: ProblemSpec, sol: Solution) -> dict[str, Any]:
     balance = verify.moisture_balance(
-        sol.t, sol.xi, sol.moist, sol.radius, sol.air_hum, spec.props.hm, cum_loss=sol.cum_moist_loss
+        sol.t,
+        sol.xi,
+        sol.moist,
+        sol.radius,
+        sol.air_hum,
+        spec.props.hm,
+        cum_loss=sol.cum_moist_loss,
+        flux=spec.surface_moisture_loss(sol.t, sol.moist[:, -1], sol.air_hum),
     )
     extremum = verify.extremum_checks(sol.temp, sol.moist, sol.air_temp, sol.air_hum, spec.t_init, spec.c_init)
     report: dict[str, Any] = {"moisture_balance": balance, "extremum": extremum}
@@ -122,9 +129,14 @@ def _run_recipe(job: dict[str, Any]) -> dict[str, Any]:
                 "dry_profile_sub": None if sol.dry_profile is None else sol.dry_profile[idx].tolist(),
                 "mean_moist_t": sol.t.tolist(),
                 "mean_moist": mean_moisture(sol).tolist(),
+                "centre_moist": sol.moist[:, 0].tolist(),
+                "surface_moist": sol.moist[:, -1].tolist(),
+                "air_hum": sol.air_hum.tolist(),
                 "stats": sol.stats,
             }
         )
+        if job.get("checks"):
+            out["checks"] = _checks(spec, sol)
     else:
         t_out = np.asarray(job["t_out"], dtype=float)
         sol = solve(spec, n, t_out, **opts)

@@ -22,7 +22,7 @@ import numpy as np
 from scipy import sparse
 from scipy.integrate import solve_ivp
 
-from pipelines.a.physics import C_INIT, C_TARGET, T_INIT, Chamber, Properties, Radius
+from pipelines.a.physics import C_INIT, C_TARGET, T_INIT, Chamber, FluxCap, Properties, Radius
 
 FACE_SCHEMES = ("midpoint", "arithmetic", "harmonic")
 FORMULATIONS = ("lagrangian", "eulerian")
@@ -56,6 +56,7 @@ class ProblemSpec:
     face_scheme: str = "midpoint"
     t_init: float = T_INIT
     c_init: float = C_INIT
+    flux_cap: FluxCap | None = None  # energy-limited evaporation (model-evaluation extension, MDR-0008)
 
     def describe(self) -> dict[str, Any]:
         return {
@@ -66,7 +67,15 @@ class ProblemSpec:
             "face_scheme": self.face_scheme,
             "t_init": self.t_init,
             "c_init": self.c_init,
+            "flux_cap": None if self.flux_cap is None else self.flux_cap.describe(),
         }
+
+    def surface_moisture_loss(self, t: Any, c_surface: Any, c_air: Any) -> Any:
+        """Boundary loss law hm (C_s - C_air) in (kg/kg) m/s, bounded by the energy cap when one is set."""
+        loss = self.props.hm * (np.asarray(c_surface, dtype=float) - np.asarray(c_air, dtype=float))
+        if self.flux_cap is None:
+            return loss
+        return np.minimum(loss, np.asarray(self.flux_cap.value(t), dtype=float) / self.flux_cap.rho_s)
 
 
 @dataclass
@@ -146,7 +155,8 @@ class RadialSystem:
         div_t = np.empty(n1)
         div_c[:-1] = flux_c
         div_t[:-1] = flux_t
-        div_c[-1] = -radius * props.hm * (moist[-1] - c_air)  # outer face: xi D dC/dxi = R (-hm (C_s - C_air))
+        loss_c = float(self.spec.surface_moisture_loss(t, moist[-1], c_air))  # hm (C_s - C_air), capped if set
+        div_c[-1] = -radius * loss_c  # outer face: xi D dC/dxi = R (-hm (C_s - C_air))
         div_t[-1] = -radius * props.h * (temp[-1] - t_air)
         div_c[1:] -= flux_c
         div_t[1:] -= flux_t
@@ -164,7 +174,7 @@ class RadialSystem:
             grad_t[-1] = (3.0 * temp[-1] - 4.0 * temp[-2] + temp[-3]) / (2.0 * g.dxi)
             dc = dc + g.xi * rate * grad_c
             dt = dt + g.xi * rate * grad_t
-        losses = [props.hm * (moist[-1] - c_air) / radius, props.h * (temp[-1] - t_air) / radius]
+        losses = [loss_c / radius, props.h * (temp[-1] - t_air) / radius]
         return np.concatenate([dt, dc, losses])
 
     def jacobian_sparsity(self) -> sparse.csr_matrix:
