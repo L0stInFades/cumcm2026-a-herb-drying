@@ -477,13 +477,17 @@ def convergence(ctx: StageContext) -> dict[str, Any]:
                     "snapshot_times": _table_times_hours(t_dry).tolist(),
                 }
             )
-    # time-tolerance and integrator cross-checks on the production grid (problem 3, the longest run)
+    # time-tolerance, integrator and maximum-step cross-checks on the production grid (problem 3, the longest run)
     n_prod = 20 * 2**refine
-    for label, extra in (
+    time_cases = (
         ("tol:strict", {"rtol": 1e-10, "atol": 1e-12}),
         ("tol:radau", {"method": "Radau"}),
         ("tol:loose", {"rtol": 1e-7, "atol": 1e-9}),
-    ):
+        ("dt:3600", {"max_step": 3600.0}),
+        ("dt:900", {"max_step": 900.0}),
+        ("dt:300", {"max_step": 300.0}),
+    )
+    for label, extra in time_cases:
         jobs.append(
             {
                 "label": label,
@@ -519,7 +523,7 @@ def convergence(ctx: StageContext) -> dict[str, Any]:
             rows[i]["diff_to_finest_min"] = (dry[i] - dry[-1]) / 60.0
         report["grid"][f"{prob}_t_dry"] = rows
     base = results[f"q3:k{refine}"]
-    for label in ("tol:strict", "tol:radau", "tol:loose"):
+    for label, _extra in time_cases:
         r = results[label]
         common = set(r["snapshot_t"]) & set(base["snapshot_t"])
         a = np.asarray([row for t, row in zip(r["snapshot_t"], r["snapshot_moist"]) if t in common])
@@ -559,6 +563,10 @@ def convergence(ctx: StageContext) -> dict[str, Any]:
     ctx.number("TimeRadauDiffMoist", report["time"]["tol:radau"]["max_abs_diff_moist"], ".1e")
     ctx.number("TimeStrictDryDiffSec", abs(report["time"]["tol:strict"]["t_dry_diff_s"]), ".2f")
     ctx.number("TimeRadauDryDiffSec", abs(report["time"]["tol:radau"]["t_dry_diff_s"]), ".2f")
+    ctx.number("TimeStepCoarseDiffMoist", report["time"]["dt:3600"]["max_abs_diff_moist"], ".1e")
+    ctx.number("TimeStepCoarseDryDiffSec", abs(report["time"]["dt:3600"]["t_dry_diff_s"]), ".2f")
+    ctx.number("TimeStepFineDiffMoist", report["time"]["dt:300"]["max_abs_diff_moist"], ".1e")
+    ctx.number("TimeStepFineDryDiffSec", abs(report["time"]["dt:300"]["t_dry_diff_s"]), ".2f")
     return {"orders": orders, "jobs": len(jobs)}
 
 

@@ -232,25 +232,23 @@ def tables(ctx: StageContext) -> dict[str, Any]:
     rows_t = []
     for row in conv["time"].values():
         opt = row["options"]
-        rows_t.append(
-            [
-                f"{opt['method']}, rtol={opt['rtol']:.0e}, atol={opt['atol']:.0e}",
-                f"{row['max_abs_diff_moist']:.2e}",
-                f"{row['t_dry_diff_s']:.2f}",
-                row["nfev"],
-            ]
-        )
+        label = f"{opt['method']}, rtol={opt['rtol']:.0e}, atol={opt['atol']:.0e}"
+        if opt.get("max_step"):
+            label += f", $\\Delta t\\le{opt['max_step']:g}$ s"
+        rows_t.append([label, f"{row['max_abs_diff_moist']:.2e}", f"{row['t_dry_diff_s']:.2f}", row["nfev"]])
     _write_table(
         ctx,
         "tab_time_independence",
         "时间积分无关性（问题 3，生产网格；与生产设置 "
         f"{ctx.cfg('a.time.method', 'BDF')}, rtol={float(ctx.cfg('a.time.rtol', 1e-9)):.0e}, "
-        f"atol={float(ctx.cfg('a.time.atol', 1e-11)):.0e} 的差异）",
+        f"atol={float(ctx.cfg('a.time.atol', 1e-11)):.0e}、步长不限的差异）",
         "tab:time-independence",
-        ["积分器与容差", "水分最大差", "$t_{\\mathrm{end}}$ 差/s", "右端项调用次数"],
+        ["积分器、容差与最大步长", "水分最大差", "$t_{\\mathrm{end}}$ 差/s", "右端项调用次数"],
         rows_t,
         digits=[0, 0, 0, 0],
         align="lrrr",
+        note="$\\Delta t\\le$ 行为限制最大步长的自适应 BDF（其余设置同生产）；"
+        "步长限制改变的只是步序列，结果差异应在容差量级。",
     )
 
     # verification summary
