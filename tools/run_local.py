@@ -25,7 +25,9 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
-DEFAULT_STAGES = "ingest,validate,q1,q2,q3,q4,convergence,verification,sensitivity,extension,derived,results,figures,tables"
+DEFAULT_STAGES = (
+    "ingest,validate,q1,q2,q3,q4,convergence,verification,sensitivity,extension,derived,results,figures,tables"
+)
 # --quick lowers the radial refinement and the ODE tolerances through ``config_overrides`` (the same
 # mechanism as ``--profile``), so the whole chain finishes in minutes. Structure of every table and figure
 # is reproduced; the fourth decimal is not — the published numbers used refine = 5 (docs/RUNBOOK.md).
@@ -38,8 +40,20 @@ _QUICK_CONFIG = {
 }
 QUICK = {
     s: {"config_overrides": _QUICK_CONFIG}
-    for s in ("q1", "q2", "q3", "q4", "convergence", "verification", "sensitivity", "extension", "derived",
-              "results", "figures", "tables")
+    for s in (
+        "q1",
+        "q2",
+        "q3",
+        "q4",
+        "convergence",
+        "verification",
+        "sensitivity",
+        "extension",
+        "derived",
+        "results",
+        "figures",
+        "tables",
+    )
 }
 
 
