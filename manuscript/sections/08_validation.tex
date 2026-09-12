@@ -1,4 +1,4 @@
-本节按验证与确认（verification \& validation）的标准框架\cite{roache1998,oberkampf2010}检验前四节的结果：\textbf{验证}回答"方程解对了吗"，\textbf{确认}回答"解对了方程吗"。所有检验由\textbf{与求解器代码分离}的校验器完成——它只读取求解结果数组，自行重算平衡量与解析解，不调用求解器的任何内部函数（附录~\ref{app:code} 的 \nolinkurl{pipelines/a/verify.py} 与 \nolinkurl{pipelines/a/solver.py}）。表~\ref{tab:verification} 汇总四个问题的校验结论，下面逐项说明。
+本节按验证与确认（verification \& validation）的标准框架\cite{roache1998,oberkampf2010}检验前四节的结果：\textbf{验证}回答“方程解对了吗”，\textbf{确认}回答“解对了方程吗”。所有检验由\textbf{与求解器代码分离}的校验器完成——它只读取求解结果数组，自行重算平衡量与解析解，不调用求解器的任何内部函数（附录~\ref{app:code} 的 \nolinkurl{pipelines/a/verify.py} 与 \nolinkurl{pipelines/a/solver.py}）。表~\ref{tab:verification} 汇总四个问题的校验结论，下面逐项说明。
 
 \input{generated/tables/tab_verification.tex}
 
@@ -15,7 +15,7 @@
 
 \subsection{网格收敛与观测阶}
 
-取 $\Delta r=0.1/2^k$ \si{\centi\meter}，$k=0,\dots,6$（$k=5$ 为生产网格），以最细网格为参照，在各问题表格所要求的时刻与位置上计算最大绝对误差 $e_k$ 与观测阶 $p_k=\log_2(e_k/e_{k+1})$，结果见表~\ref{tab:convergence}（附录~\ref{app:tables}）与图~\ref{fig:convergence}(a)。观测阶为 $\valConvOrderQthreeMoist$--$\valConvOrderQoneMoist$（问题 3、4 在粗网格上略低于 2，是因为烘干时刻本身随网格移动，误差同时包含"同一时刻的解误差"与"时刻差异"；细化后恢复二阶）。生产网格（$k=5$）上的误差为：问题 1 温度 \sci{\valConvErrQoneTemp}、问题 1 水分 \sci{\valConvErrQoneMoist}、问题 2 温度 \sci{\valConvErrQtwoTemp}、问题 2 水分 \sci{\valConvErrQtwoMoist}、问题 3 水分 \sci{\valConvErrQthreeMoist}、问题 4 水分 \sci{\valConvErrQfourMoist}，全部小于四位小数的舍入尺度，因此表格与结果文件中的每一位小数都有意义。
+取 $\Delta r=0.1/2^k$ \si{\centi\meter}，$k=0,\dots,6$（$k=5$ 为生产网格），以最细网格为参照，在各问题表格所要求的时刻与位置上计算最大绝对误差 $e_k$ 与观测阶 $p_k=\log_2(e_k/e_{k+1})$，结果见表~\ref{tab:convergence}（附录~\ref{app:tables}）与图~\ref{fig:convergence}(a)。观测阶为 $\valConvOrderQthreeMoist$--$\valConvOrderQoneMoist$（问题 3、4 在粗网格上略低于 2，是因为烘干时刻本身随网格移动，误差同时包含“同一时刻的解误差”与“时刻差异”；细化后恢复二阶）。生产网格（$k=5$）上的误差为：问题 1 温度 \sci{\valConvErrQoneTemp}、问题 1 水分 \sci{\valConvErrQoneMoist}、问题 2 温度 \sci{\valConvErrQtwoTemp}、问题 2 水分 \sci{\valConvErrQtwoMoist}、问题 3 水分 \sci{\valConvErrQthreeMoist}、问题 4 水分 \sci{\valConvErrQfourMoist}，全部小于四位小数的舍入尺度，因此表格与结果文件中的每一位小数都有意义。
 
 \paperfigure{fig_convergence.pdf}{网格收敛：各问题在表格时刻与位置上相对最细网格（$\Delta r=0.1/2^{6}$ \si{\centi\meter}）的最大误差（a）与常物性算例相对贝塞尔级数解\eqref{eq:bessel} 的最大误差（b）；点线为二阶参考斜率。}{fig:convergence}
 
@@ -23,7 +23,7 @@
 
 \subsection{时间积分的无关性}
 
-表~\ref{tab:time-independence} 给出在生产网格上改变时间积分设置的结果：把容差收紧一个量级、改用隐式 Runge--Kutta 方法 Radau IIA\cite{hairer1996}、以及把最大步长强制限制为 $\Delta t\le3600,900,300$ \si{\second}。水分浓度的最大差异不超过 \sci{\valTimeRadauDiffMoist}，烘干时间的差异不超过 $\valTimeRadauDryDiffSec$ \si{\second}；把容差放松两个量级（rtol$=10^{-7}$，表~\ref{tab:time-independence} 第三行）时差异仍远小于四位小数的舍入尺度。这说明结果与时间步长序列无关，生产容差有充分余量。注：$\Delta t\le3600$ \si{\second} 一行与生产设置逐位相同，因为自适应 BDF 在本问题中从未取过超过 \SI{1}{\hour} 的步长，该行证明的是"步长限制未被触发"。
+表~\ref{tab:time-independence} 给出在生产网格上改变时间积分设置的结果：把容差收紧一个量级、改用隐式 Runge--Kutta 方法 Radau IIA\cite{hairer1996}、以及把最大步长强制限制为 $\Delta t\le3600,900,300$ \si{\second}。水分浓度的最大差异不超过 \sci{\valTimeRadauDiffMoist}，烘干时间的差异不超过 $\valTimeRadauDryDiffSec$ \si{\second}；把容差放松两个量级（rtol$=10^{-7}$，表~\ref{tab:time-independence} 第三行）时差异仍远小于四位小数的舍入尺度。这说明结果与时间步长序列无关，生产容差有充分余量。注：$\Delta t\le3600$ \si{\second} 一行与生产设置逐位相同，因为自适应 BDF 在本问题中从未取过超过 \SI{1}{\hour} 的步长，该行证明的是“步长限制未被触发”。
 
 \input{generated/tables/tab_time_independence.tex}
 
@@ -57,7 +57,7 @@
 
 \subsection{结果文件与表格的一致性检查}
 
-四个结果工作簿由附件 3 的模板生成（不重建工作簿结构），并由自动契约逐项检查：工作表名称、首行与首列与模板逐格一致，行数与时间步长符合题目要求，数值区无非数字单元、小数位不超过四位，问题 4 中超出当前半径的单元为空且"药材表面"列完整。全部契约检查通过（附录~\ref{app:repro}）。论文表格与结果文件由同一份求解结果生成，因此逐位一致：\nolinkurl{result3.xlsx} 共 $\valQthreeResultRows$ 个时间行（末行 $\valQthreeDryHoursGrid$ h）、\nolinkurl{result4.xlsx} 共 $\valQfourResultRows$ 行。
+四个结果工作簿由附件 3 的模板生成（不重建工作簿结构），并由自动契约逐项检查：工作表名称、首行与首列与模板逐格一致，行数与时间步长符合题目要求，数值区无非数字单元、小数位不超过四位，问题 4 中超出当前半径的单元为空且“药材表面”列完整。全部契约检查通过（附录~\ref{app:repro}）。论文表格与结果文件由同一份求解结果生成，因此逐位一致：\nolinkurl{result3.xlsx} 共 $\valQthreeResultRows$ 个时间行（末行 $\valQthreeDryHoursGrid$ h）、\nolinkurl{result4.xlsx} 共 $\valQfourResultRows$ 行。
 
 \subsection{灵敏度与不确定性}
 \label{subsec:sensitivity}
@@ -75,7 +75,7 @@
   \item \textbf{传质系数} $h_m$ 的弹性只有 $\valElasHm$，\textbf{换热系数} $h$ 几乎为零（$\valElasH$），\textbf{烘房湿度} $C_{\mathrm{air}}$ 为 $\valElasCair$。结论：在题给参数下，过程由内部扩散控制，强化外部对流（加大风速）对缩短烘干时间几乎无效。
 \end{enumerate}
 
-\paragraph{不确定性预算。} 把上述结果整理为 $t_{\mathrm{end}}$ 的误差来源：\emph{数值离散}（网格 $\le\valQthreeGridErrorMin$ \si{\minute}，时间积分 $\le\valTimeRadauDryDiffSec$ \si{\second}，一维化 $\valEndEffectDryDiffPct\%$）合计远小于 $0.1\%$；\emph{解释性选择}（平台取法 $\valAltPlateauLastSamplePct\%$、界面平均 $\valAltFaceHarmonicPct\%$）不超过 $1\%$；\emph{参数不确定性}（若 $D_0$ 有 $\pm20\%$ 的拟合误差）使 $t_{\mathrm{end}}$ 在表~\ref{tab:sensitivity} 的 $\times0.8$ 与 $\times1.2$ 两行之间变动，约为两成；而\emph{判据的表述}（"各处" vs "平均"）可带来 $\valAltQthreeMeanCriterionPct\%$ 的改变。因此本文报告的 $t_{\mathrm{end}}$ 在题给模型内部是精确的，其现实不确定性主要来自经验公式的拟合精度与工艺判据的定义，而非数值方法。
+\paragraph{不确定性预算。} 把上述结果整理为 $t_{\mathrm{end}}$ 的误差来源：\emph{数值离散}（网格 $\le\valQthreeGridErrorMin$ \si{\minute}，时间积分 $\le\valTimeRadauDryDiffSec$ \si{\second}，一维化 $\valEndEffectDryDiffPct\%$）合计远小于 $0.1\%$；\emph{解释性选择}（平台取法 $\valAltPlateauLastSamplePct\%$、界面平均 $\valAltFaceHarmonicPct\%$）不超过 $1\%$；\emph{参数不确定性}（若 $D_0$ 有 $\pm20\%$ 的拟合误差）使 $t_{\mathrm{end}}$ 在表~\ref{tab:sensitivity} 的 $\times0.8$ 与 $\times1.2$ 两行之间变动，约为两成；而\emph{判据的表述}（“各处” vs “平均”）可带来 $\valAltQthreeMeanCriterionPct\%$ 的改变。因此本文报告的 $t_{\mathrm{end}}$ 在题给模型内部是精确的，其现实不确定性主要来自经验公式的拟合精度与工艺判据的定义，而非数值方法。
 
 \subsection{备选解释的对照}
 \label{subsec:alternatives}

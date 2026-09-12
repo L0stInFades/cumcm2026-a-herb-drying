@@ -7,8 +7,8 @@
 \begin{enumerate}[label=\textbf{问题 \arabic*},leftmargin=*,labelsep=1em,itemsep=0.3em]
   \item \textbf{（预热平衡阶段）} 采用附录 2 的常物性参数（$\rho=\SI{820}{\kilo\gram\per\cubic\meter}$、$c_p=\SI{2600}{\joule\per\kilo\gram\per\kelvin}$、$k=\SI{0.36}{\watt\per\meter\per\kelvin}$、$h=\SI{25}{\watt\per\square\meter\per\kelvin}$、$h_m=\SI{8e-7}{\meter\per\second}$、$D=7\times10^{-9}\mathrm{e}^{-0.89/C}$），建立预热平衡阶段药材温度与水分浓度变化规律的模型，给出 $t\in\{100,300,600,900,1200,1500,1800\}$ \si{\second} 与 $r\in\{0,0.5,1,1.5,2\}$ \si{\centi\meter} 处的结果（表~\ref{tab:q1-temp}、表~\ref{tab:q1-moist}），并把 \SI{1800}{\second} 内每隔 \SI{1}{\second}、每隔 \SI{0.1}{\centi\meter} 的完整结果写入 \nolinkurl{result1.xlsx}。
   \item \textbf{（全过程模型）} 烘干过程一般持续 2--3 天，预热平衡与恒温干燥阶段的参数有所不同；统一采用附录 3 的变物性经验公式建立整个烘干过程的模型，给出 \SI{3}{\hour} 内每隔 \SI{0.5}{\hour} 的结果（表~\ref{tab:q2-temp}、表~\ref{tab:q2-moist}），完整结果写入 \nolinkurl{result2.xlsx}。
-  \item \textbf{（烘干时长）} 按照烘干要求，药材\textbf{各处}的水分浓度应低于 \SI{0.15}{\kilo\gram\per\kilo\gram}，确定烘干所需的时间（单位：h），给出每隔 \SI{6}{\hour}、每隔 \SI{0.5}{\centi\meter} 的水分浓度（表~\ref{tab:q3-moist}，含"烘干结束时间"行），完整结果（每 \SI{60}{\second}、每 \SI{0.1}{\centi\meter}）写入 \nolinkurl{result3.xlsx}。
-  \item \textbf{（尺寸变化）} 实际烘干中药材因水分流失发生尺寸变化；根据附件 2 给出的 $R(t)$ 与附录 4 的物性公式确定烘干时长，按表~\ref{tab:q4-moist} 的格式给出每隔 \SI{6}{\hour} 的水分浓度（含"药材表面"列），完整结果写入 \nolinkurl{result4.xlsx}。
+  \item \textbf{（烘干时长）} 按照烘干要求，药材\textbf{各处}的水分浓度应低于 \SI{0.15}{\kilo\gram\per\kilo\gram}，确定烘干所需的时间（单位：h），给出每隔 \SI{6}{\hour}、每隔 \SI{0.5}{\centi\meter} 的水分浓度（表~\ref{tab:q3-moist}，含“烘干结束时间”行），完整结果（每 \SI{60}{\second}、每 \SI{0.1}{\centi\meter}）写入 \nolinkurl{result3.xlsx}。
+  \item \textbf{（尺寸变化）} 实际烘干中药材因水分流失发生尺寸变化；根据附件 2 给出的 $R(t)$ 与附录 4 的物性公式确定烘干时长，按表~\ref{tab:q4-moist} 的格式给出每隔 \SI{6}{\hour} 的水分浓度（含“药材表面”列），完整结果写入 \nolinkurl{result4.xlsx}。
 \end{enumerate}
 
 所有结果保留四位小数；结果文件的 A 列为时间（\si{\second}），第 1 行为到药材中心的距离（\si{\centi\meter}）。本文四个结果文件均由附件 3 的模板生成，格式与模板逐格一致（见第~\ref{sec:validation} 节与附录~\ref{app:repro}）。
@@ -17,7 +17,7 @@
 题目给出了全部物性与传递参数，但未写出控制方程与边界条件的具体形式，也未规定若干实现细节。本文对以下三处作出明确解释，并对每一处给出备选方案的定量对照（第~\ref{subsec:alternatives} 小节）：
 
 \begin{enumerate}[label=(\alph*),leftmargin=*]
-  \item \textbf{边界条件的形式}：把"对流换热系数 $h$"与"对流传质系数 $h_m$"按其量纲唯一地解释为表面 Robin 条件的系数，即 $-k\,\partial_r T=h\,(T_s-T_{\mathrm{air}})$ 与 $-D\,\partial_r C=h_m\,(C_s-C_{\mathrm{air}})$。这也使题给参数恰好构成一个封闭的定解问题（见假设~\ref{as:boundary}）。
+  \item \textbf{边界条件的形式}：把“对流换热系数 $h$”与“对流传质系数 $h_m$”按其量纲唯一地解释为表面 Robin 条件的系数，即 $-k\,\partial_r T=h\,(T_s-T_{\mathrm{air}})$ 与 $-D\,\partial_r C=h_m\,(C_s-C_{\mathrm{air}})$。这也使题给参数恰好构成一个封闭的定解问题（见假设~\ref{as:boundary}）。
   \item \textbf{附件 1 之外的烘房状态}：问题 3、4 的烘干持续数十小时，超出附件 1 的 \SI{4}{\hour} 覆盖范围。本文在样本之间线性插值，在 \SI{14400}{\second} 之后取恒温干燥阶段的平台值 $T_{\mathrm{air}}=\valQthreeAirTempPlateau\,^\circ$C、$C_{\mathrm{air}}=\valQthreeAirHumPlateau$ kg/kg（末 \SI{1}{\hour} 样本均值）。
-  \item \textbf{收缩域上方程的写法}：附件 2 的 $R(t)$ 只给出几何，未说明被边界"扫过"的物质如何处理。本文以干物质守恒的物质（Lagrangian）坐标为主模型，并给出实验室坐标（Eulerian）写法的对照结果。
+  \item \textbf{收缩域上方程的写法}：附件 2 的 $R(t)$ 只给出几何，未说明被边界“扫过”的物质如何处理。本文以干物质守恒的物质（Lagrangian）坐标为主模型，并给出实验室坐标（Eulerian）写法的对照结果。
 \end{enumerate}

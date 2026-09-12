@@ -1,11 +1,11 @@
 % 摘要：问题背景一句、方法主线、关键结果（数值全部来自 \val 宏）、检验结论与关键词。整页不得溢出。
 本文把药材热风烘干抽象为\textbf{圆柱体内热质耦合扩散与表面对流交换}的初边值问题：由能量与水分守恒律导出一维径向变系数抛物方程组，中心取对称条件，表面取题给参数确定的 Robin 条件 $-k\,\partial_r T=h(T-T_{\mathrm{air}})$ 与 $-D\,\partial_r C=h_m(C-C_{\mathrm{air}})$，烘房状态由附件 1 逐点插值给出。四个问题共用同一套模型与程序，差别只在物性公式、时间范围与边界是否移动。数值上采用顶点型有限体积离散（$r$ 加权控制体、界面状态法计算非线性系数、Robin 通量直接施加于表面半控制体），配合稀疏雅可比的自适应 BDF 积分，并在每个数据折点重启积分器；生产网格 $\Delta r=\valGridDrCm$ cm（$\valGridNodes$ 节点，与 0.1 cm 输出网格重合，无插值），容差 rtol$=$\,\sci{\valTimeRtol}、atol$=$\,\sci{\valTimeAtol}。
 
-\textbf{问题一}（预热平衡阶段，附录 2 物性）：1800 s 时中心温度 $\valQoneCentreTempEnd\,^\circ$C、表面 $\valQoneSurfaceTempEnd\,^\circ$C（比烘房低 $\valQoneSurfaceTempLag$ K），中心水分浓度仍为 $\valQoneCentreMoistEnd$ kg/kg、表面降至 $\valQoneSurfaceMoistEnd$ kg/kg，体积平均失水 $\valQoneMoistLossPct\%$。无量纲分析解释了"温度已穿透、水分仅在表层"的格局：热、质傅里叶数分别为 $\valQoneFourierHeat$ 与 $\valQoneFourierMass$，水分扩散长度仅 $\valQoneDiffusionLengthCm$ cm。
+\textbf{问题一}（预热平衡阶段，附录 2 物性）：1800 s 时中心温度 $\valQoneCentreTempEnd\,^\circ$C、表面 $\valQoneSurfaceTempEnd\,^\circ$C（比烘房低 $\valQoneSurfaceTempLag$ K），中心水分浓度仍为 $\valQoneCentreMoistEnd$ kg/kg、表面降至 $\valQoneSurfaceMoistEnd$ kg/kg，体积平均失水 $\valQoneMoistLossPct\%$。无量纲分析解释了“温度已穿透、水分仅在表层”的格局：热、质傅里叶数分别为 $\valQoneFourierHeat$ 与 $\valQoneFourierMass$，水分扩散长度仅 $\valQoneDiffusionLengthCm$ cm。
 
 \textbf{问题二}（全过程，附录 3 变物性）：3 h 时中心温度 $\valQtwoCentreTempThreeH\,^\circ$C、中心水分 $\valQtwoCentreMoistThreeH$ kg/kg、表面 $\valQtwoSurfaceMoistThreeH$ kg/kg，平均失水 $\valQtwoMoistLossPct\%$；中心温度在 $\valQtwoCentreWithinOneKelvinHours$ h 后与烘房相差不足 1 K，此后扩散系数由含水率单独控制。
 
-\textbf{问题三}：以"各处水分浓度低于 $0.15$ kg/kg"即 $\max_r C(r,t)<0.15$ 为判据、用事件求根精确定位，得烘干时间 $\valQthreeDryHours$ h（$\valQthreeDryDays$ 天），落在题述"2--3 天"之内；此时表面水分已降至 $\valQthreeSurfaceMoistAtDry$ kg/kg，中心成为控制点。
+\textbf{问题三}：以“各处水分浓度低于 $0.15$ kg/kg”即 $\max_r C(r,t)<0.15$ 为判据、用事件求根精确定位，得烘干时间 $\valQthreeDryHours$ h（$\valQthreeDryDays$ 天），落在题述“2--3 天”之内；此时表面水分已降至 $\valQthreeSurfaceMoistAtDry$ kg/kg，中心成为控制点。
 
 \textbf{问题四}（尺寸变化）：按干物质守恒在 Landau 物质坐标下求解收缩域问题（附件 2 的 $R(t)$ 用保单调 PCHIP 插值），烘干时长 $\valQfourDryHours$ h；与同物性、半径固定 2 cm 的 $\valQfourDryHoursFixed$ h 相比缩短为 $1/\valQfourFixedToMovingRatio$，与扩散时间尺度之比 $(R_0/R_\infty)^2=\valQfourRadiusRatioSquared$ 相符，说明收缩通过缩短扩散路径主导了加速。
 

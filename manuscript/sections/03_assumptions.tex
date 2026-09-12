@@ -13,7 +13,7 @@
 
 \begin{assumption}[内部水分迁移服从 Fick 扩散，题给]\label{as:fick}
 药材内部的水分通量（相对于固体骨架）为 $\bm j=-\rho_s D(C,T)\nabla C$，$\rho_s$ 为干物质表观密度；液态水与水蒸气的迁移合并为一个有效扩散系数 $D$。
-\emph{依据}：题目给出的正是"水分浓度扩散系数"的经验公式，其指数形式 $D=D_0\mathrm{e}^{-a/C}\mathrm{e}^{-E/T_K}$ 是干燥文献中有效扩散率的常用拟合形式\cite{zogzas1996,mujumdar2014}。\emph{后果}：不区分毛细流动与蒸汽扩散，也不含总压梯度驱动的渗流\cite{whitaker1977}。
+\emph{依据}：题目给出的正是“水分浓度扩散系数”的经验公式，其指数形式 $D=D_0\mathrm{e}^{-a/C}\mathrm{e}^{-E/T_K}$ 是干燥文献中有效扩散率的常用拟合形式\cite{zogzas1996,mujumdar2014}。\emph{后果}：不区分毛细流动与蒸汽扩散，也不含总压梯度驱动的渗流\cite{whitaker1977}。
 \end{assumption}
 
 \begin{assumption}[表面为对流型 Robin 条件，传递系数恒定，题给+附加]\label{as:boundary}
@@ -25,12 +25,12 @@
 
 \begin{assumption}[烘房状态空间均匀、时间上分段线性并在恒温阶段取平台，附加]\label{as:chamber}
 $T_{\mathrm{air}}(t)$、$C_{\mathrm{air}}(t)$ 在药材表面处处相同；在附件 1 的样本之间线性插值；$t>\SI{14400}{\second}$ 后取恒温干燥阶段的平台值（末 \SI{1}{\hour} 样本均值）$T_{\mathrm{air}}=\valQthreeAirTempPlateau\,^\circ$C、$C_{\mathrm{air}}=\valQthreeAirHumPlateau$ kg/kg。
-\emph{依据}：附件 1 的温度在约 \SI{2}{\hour} 后围绕 \SI{50}{\celsius} 波动（相邻样本差 $\pm\SI{0.3}{\celsius}$，为测量噪声量级），"恒温干燥阶段"的物理含义是烘房保持设定值，取末 \SI{1}{\hour} 均值是对设定值的无偏且抗单点噪声的估计（MDR-0003）。\emph{备选}：取末样本值或名义值 \SI{50}{\celsius}/\SI{0.05}{\kilo\gram\per\kilo\gram} 的结果见表~\ref{tab:alternatives}（相差 $\valAltPlateauLastSamplePct\%$ 以内）。
+\emph{依据}：附件 1 的温度在约 \SI{2}{\hour} 后围绕 \SI{50}{\celsius} 波动（相邻样本差 $\pm\SI{0.3}{\celsius}$，为测量噪声量级），“恒温干燥阶段”的物理含义是烘房保持设定值，取末 \SI{1}{\hour} 均值是对设定值的无偏且抗单点噪声的估计（MDR-0003）。\emph{备选}：取末样本值或名义值 \SI{50}{\celsius}/\SI{0.05}{\kilo\gram\per\kilo\gram} 的结果见表~\ref{tab:alternatives}（相差 $\valAltPlateauLastSamplePct\%$ 以内）。
 \end{assumption}
 
 \begin{assumption}[能量方程不含蒸发潜热源，题给]\label{as:latent}
 能量方程只含导热项，表面只通过对流换热与烘房交换热量，不扣除表面蒸发所需的潜热。
-\emph{依据}：题目给出的参数体系中没有潜热、蒸气压或平衡含水率，表面传质律 $h_m(C_s-C_{\mathrm{air}})$ 也不含湿球反馈；强行加入潜热项会使该传质律给出的蒸发速率把表面温度压到 \SI{0}{\celsius} 以下（不适定，MDR-0008）。\emph{后果}：前十余小时药材温度被高估，因而 $D$ 被高估、烘干时间被低估。第~\ref{sec:evaluation} 节以"潜热等效温降"作后验诊断（峰值 $\valExtLatentDeltaTPeak$ K，降到 1 K 以下需 $\valExtLatentBelowOneKHours$ h），并以湿球能量上限给出界定性结果（$+\valExtCappedPct\%$）。
+\emph{依据}：题目给出的参数体系中没有潜热、蒸气压或平衡含水率，表面传质律 $h_m(C_s-C_{\mathrm{air}})$ 也不含湿球反馈；强行加入潜热项会使该传质律给出的蒸发速率把表面温度压到 \SI{0}{\celsius} 以下（不适定，MDR-0008）。\emph{后果}：前十余小时药材温度被高估，因而 $D$ 被高估、烘干时间被低估。第~\ref{sec:evaluation} 节以“潜热等效温降”作后验诊断（峰值 $\valExtLatentDeltaTPeak$ K，降到 1 K 以下需 $\valExtLatentBelowOneKHours$ h），并以湿球能量上限给出界定性结果（$+\valExtCappedPct\%$）。
 \end{assumption}
 
 \begin{assumption}[问题 1--3 体积不变；问题 4 均匀各向同性收缩且干物质守恒，题给+附加]\label{as:shrink}
@@ -45,14 +45,17 @@ $T_{\mathrm{air}}(t)$、$C_{\mathrm{air}}(t)$ 在药材表面处处相同；在�
 
 \begin{assumption}[烘干结束判据，题给]\label{as:criterion}
 烘干结束时刻为 $t_{\mathrm{end}}=\inf\{t>0:\ \max_{0\le r\le R(t)}C(r,t)<C^\ast\}$，$C^\ast=\SI{0.15}{\kilo\gram\per\kilo\gram}$。
-\emph{依据}：题目要求"各处的水分浓度应低于 \SI{0.15}{\kilo\gram\per\kilo\gram}"。\emph{备选}：若按体积平均含水率判断，烘干时间为 $\valAltQthreeMeanCriterionHours$ h（$\valAltQthreeMeanCriterionPct\%$，表~\ref{tab:alternatives}）——判据的选择比任何参数扰动都更显著地改变答案。
+\emph{依据}：题目要求“各处的水分浓度应低于 \SI{0.15}{\kilo\gram\per\kilo\gram}”。\emph{备选}：若按体积平均含水率判断，烘干时间为 $\valAltQthreeMeanCriterionHours$ h（$\valAltQthreeMeanCriterionPct\%$，表~\ref{tab:alternatives}）——判据的选择比任何参数扰动都更显著地改变答案。
 \end{assumption}
 
 \subsection{符号说明}
-下表列出全文使用的主要符号；其余符号在首次出现处定义。除特别说明外一律使用国际单位制，含水率为干基（\si{\kilo\gram} 水/\si{\kilo\gram} 干物质）。
+表~\ref{tab:symbols} 列出全文使用的主要符号；其余符号在首次出现处定义。除特别说明外一律使用国际单位制，含水率为干基（\si{\kilo\gram} 水/\si{\kilo\gram} 干物质）。
 
 \begingroup\small
 \begin{longtable}{@{}p{0.10\linewidth}p{0.32\linewidth}p{0.24\linewidth}p{0.25\linewidth}@{}}
+\caption{全文使用的主要符号、含义、单位与取值来源}\label{tab:symbols}\\
+\toprule 符号 & 含义 & 单位 & 取值/来源 \\* \midrule \endfirsthead
+\multicolumn{4}{@{}l@{}}{\footnotesize 表~\thetable{}（续）}\\
 \toprule 符号 & 含义 & 单位 & 取值/来源 \\* \midrule \endhead \bottomrule \endfoot
 $t$ & 时间 & \si{\second} & --- \\
 $r$ & 到药材中心（轴）的距离 & \si{\meter} & $0\le r\le R(t)$ \\
