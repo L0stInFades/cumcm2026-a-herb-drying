@@ -17,7 +17,7 @@
 \subsection{关键困难与对策}
 \begin{enumerate}[leftmargin=*,itemsep=0.25em]
   \item \textbf{三个量级的时间尺度分离。} 以附录 2 的参数计，热扩散时间尺度 $R_0^2/\alpha=\valQoneHeatTimeScaleS$ s，而水分扩散时间尺度 $R_0^2/D(C_0)=\valQoneMassTimeScaleH$ h，两者相差 $\valQoneStiffnessRatio$ 倍；温度与水分又通过 $D(C,T)$ 强耦合。这使方程组\textbf{刚性}：显式格式的稳定步长由温度方程决定（$\Delta t\lesssim\Delta r^2/2\alpha$，在生产网格上约 \SI{3e-3}{\second}），而需要积分的总时长达 $\valQthreeDrySeconds$ \si{\second}。对策是全隐式、变阶变步长的 BDF 方法（第~\ref{subsec:time} 小节）。
-  \item \textbf{扩散系数跨越三到四个数量级。} $D\propto\mathrm{e}^{-a/C}$ 在干燥后期急剧变小：以附录 3 计，$D$ 由初始的 \sci{\valDmaxAppendixThree} \si{\square\meter\per\second} 降到烘干结束时表面的 \sci{\valDsurfaceAtDryQthree} \si{\square\meter\per\second}，比值 $\valDratioQthree$（图~\ref{fig:properties}）。表面因此形成低扩散率的“硬壳”，传质 Biot 数 $h_mR_0/D$ 由 $\valQoneBiotMass$ 增至约 $\valBiotMassAtDryQthree$，过程由\textbf{内部扩散}而非外部对流控制——这一判断在灵敏度分析中被定量证实（弹性 $\valElasH$ 对 $h$、$\valElasDzero$ 对 $D_0$）。
+  \item \textbf{扩散系数跨越三到四个数量级。} $D\propto\mathrm{e}^{-a/C}$ 在干燥后期急剧变小：以附录 3 计，$D$ 由初始（\SI{28}{\celsius}、$C_0$）的 \sci{\valQtwoDinit} \si{\square\meter\per\second} 先随升温增大到过程最大值 \sci{\valDmaxAppendixThree} \si{\square\meter\per\second}（恒温平台、$C_0$），再降到烘干结束时表面的 \sci{\valDsurfaceAtDryQthree} \si{\square\meter\per\second}，最大值与末值之比为 $\valDratioQthree$（图~\ref{fig:properties}）。表面因此形成低扩散率的“硬壳”，同一参数体系下的传质 Biot 数 $h_mR_0/D$ 由初始的 $\valQtwoBiotMassInit$ 增至约 $\valBiotMassAtDryQthree$，过程由\textbf{内部扩散}而非外部对流控制——这一判断在灵敏度分析中被定量证实（弹性 $\valElasH$ 对 $h$、$\valElasDzero$ 对 $D_0$）。
   \item \textbf{边界数据是折线与样条。} 附件 1 每 \SI{60}{\second} 一个样本，线性插值后斜率在每个样本处跳变；附件 2 的 PCHIP 插值在每个节点处曲率跳变。多步法跨过折点时的误差不受容差控制（这一现象在初期实验中被观测到，见 MDR-0004 补充），对策是在\textbf{每个数据折点重启积分器}，段内强迫项光滑。
   \item \textbf{“各处低于 0.15”是一个停止时刻问题。} 判据定义的时刻不落在输出网格上。对策是把 $g(t)=\max_i C_i(t)-0.15$ 作为积分器的事件函数精确求根，并同时报告 \SI{60}{\second} 网格上的值以与结果文件对照。
   \item \textbf{问题 4 是移动边界问题。} 计算域随 $R(t)$ 收缩。若把附录方程视为实验室坐标下的方程（Eulerian），被边界扫过的物质离开计算域，水分总量不守恒；本文以干物质守恒的物质坐标（Lagrangian）为主模型，两者的差异作为解释不确定性的一部分定量给出（第~\ref{subsec:q4model} 小节）。
@@ -40,24 +40,27 @@
 \node[box,text width=32mm] (data) {附件 1、附件 2、附录 2--4\\[-1pt]\footnotesize 契约校验（单调性、步长、范围）};
 \node[core,right=8mm of data,text width=36mm] (pde) {统一初边值问题\\[-1pt]\footnotesize 守恒律 $\Rightarrow$ 一维径向热质耦合方程\\[-1pt]\footnotesize 对称条件 + Robin 边界};
 \node[core,right=8mm of pde,text width=34mm] (num) {顶点型有限体积 $+$\\[-1pt]分段自适应 BDF\\[-1pt]\footnotesize 事件求根定位 $t_{\mathrm{end}}$};
-\node[box,below=8mm of data.south west,anchor=north west,text width=20mm] (q1) {问题 1\\\footnotesize 附录 2};
-\node[box,right=4mm of q1,text width=20mm] (q2) {问题 2\\\footnotesize 附录 3};
-\node[box,right=4mm of q2,text width=20mm] (q3) {问题 3\\\footnotesize 判据 0.15};
-\node[box,right=4mm of q3,text width=24mm] (q4) {问题 4\\\footnotesize 附录 4 $+$ Landau};
+\node[box,below=9mm of data.south west,anchor=north west,text width=23mm] (q1) {问题~1\\\footnotesize 附录 2};
+\node[box,right=4mm of q1,text width=23mm] (q2) {问题~2\\\footnotesize 附录 3};
+\node[box,right=4mm of q2,text width=23mm] (q3) {问题~3\\\footnotesize 判据 0.15};
+\node[box,right=4mm of q3,text width=25mm] (q4) {问题~4\\\footnotesize 附录 4 $+$ Landau};
 \node[chk,below=7mm of q1.south west,anchor=north west,text width=52mm] (ver) {\textbf{独立校验（与求解器代码分离）}\\[-1pt]\footnotesize 贝塞尔级数解、网格/时间收敛、守恒量、\\[-2pt]\footnotesize 极值原理、退化检验、二维轴对称交叉检验};
 \node[chk,right=5mm of ver,text width=34mm] (sen) {\textbf{灵敏度与备选解释}\\[-1pt]\footnotesize $h,h_m,D_0,C_{\mathrm{air}},T_{\mathrm{air}},s$ 的弹性\\[-2pt]\footnotesize 平台/判据/离散化的备选};
 \node[box,below=7mm of ver.south west,anchor=north west,text width=92mm] (out) {结果工作簿 \nolinkurl{result1--4.xlsx}（模板生成、契约检查）\quad$\bullet$\quad 图 / 三线表 \quad$\bullet$\quad 论文与支撑材料（散列清单）};
 \draw[ar] (data) -- (pde);
 \draw[ar] (pde) -- (num);
-\draw[ar] (num.south) -- ++(0,-3mm) -| (q4.north);
-\draw[ar] (num.south) -- ++(0,-3mm) -| (q3.north);
-\draw[ar] (pde.south) -- ++(0,-3mm) -| (q2.north);
-\draw[ar] (data.south) -- ++(0,-3mm) -| (q1.north);
+\coordinate (bus) at ($(num.south)+(0,-4mm)$);
+\draw[draw=ink!70,thick] (num.south) -- (bus);
+\draw[draw=ink!70,thick] (q1.north|-bus) -- (q4.north|-bus);
+\draw[ar] (q1.north|-bus) -- (q1.north);
+\draw[ar] (q2.north|-bus) -- (q2.north);
+\draw[ar] (q3.north|-bus) -- (q3.north);
+\draw[ar] (q4.north|-bus) -- (q4.north);
 \draw[ar] (q1.south) -- ++(0,-3mm) -| (ver.north);
 \draw[ar] (q4.south) -- ++(0,-3mm) -| (sen.north);
 \draw[ar] (ver.south) -- ++(0,-3mm) -| (out.north);
 \draw[ar] (sen.south) -- ++(0,-3mm) -| ([xshift=-20mm]out.north east);
 \end{tikzpicture}
-\caption{技术路线：由守恒律建立统一的一维径向热质耦合初边值问题，四个问题只改变物性、时间范围与边界是否移动；每一组解都经与求解器分离的独立校验，并给出灵敏度与备选解释。}
+\caption{技术路线：由守恒律建立统一的一维径向热质耦合初边值问题，四个问题从\textbf{同一条}离散与积分总线分出，只改变物性、时间范围与边界是否移动；每一组解都经与求解器分离的独立校验，并给出灵敏度与备选解释。}
 \label{fig:route}
 \end{figure}

@@ -5,7 +5,7 @@
 \subsection{与解析级数解的对照}
 \label{subsec:analytic}
 
-取常物性、恒定环境的无限长圆柱（问题 1 的温度方程正是这一情形），则\eqref{eq:heat}--\eqref{eq:robin} 有分离变量的解析解：记 $\theta=(u-u_\infty)/(u_0-u_\infty)$、$\mathrm{Fo}=at/R_0^2$、$\mathrm{Bi}=\beta R_0/a'$（$a$ 为扩散系数、$\beta$ 为传递系数），则
+取常物性、恒定环境的无限长圆柱，则\eqref{eq:heat}--\eqref{eq:robin} 有分离变量的解析解：记 $\theta=(u-u_\infty)/(u_0-u_\infty)$、$\mathrm{Fo}=at/R_0^2$、$\mathrm{Bi}=\beta R_0/a'$（$a$ 为扩散系数、$\beta$ 为传递系数），则
 \begin{equation}
 \theta(\xi,\mathrm{Fo})=\sum_{m=1}^{\infty}\frac{2\,\mathrm{Bi}}{(\lambda_m^2+\mathrm{Bi}^2)\,J_0(\lambda_m)}\,J_0(\lambda_m\xi)\,\mathrm{e}^{-\lambda_m^2\mathrm{Fo}},
 \qquad \lambda_m J_1(\lambda_m)=\mathrm{Bi}\,J_0(\lambda_m),
@@ -13,23 +13,57 @@
 \end{equation}
 特征值 $\lambda_m$ 位于 $J_0$ 的相邻零点之间，由 Brent 法求得（取 400 项，截断误差远小于比较量级）\cite{carslaw1959,crank1975}。分别以 $\mathrm{Bi}=\valAnalyticBiotHeat$（温度，$a=\alpha$）与 $\mathrm{Bi}_m=\valAnalyticBiotMass$（把 $D$ 冻结为 $D(C_0)$ 的水分方程）作对照，结果见表~\ref{tab:analytic}（附录~\ref{app:tables}）与图~\ref{fig:convergence}(b)：误差随 $\Delta r$ 干净地二阶下降，观测阶 $\valAnalyticOrderTemp$（温度）与 $\valAnalyticOrderMoist$（水分）；在生产网格上最大绝对误差为 \sci{\valAnalyticErrTemp}\,\si{\celsius} 与 \sci{\valAnalyticErrMoist} \si{\kilo\gram\per\kilo\gram}，比四位小数的舍入尺度 $5\times10^{-5}$ 小约一个数量级。这同时确认了离散格式的实现（控制体测度、半控制体上的 Robin 通量、轴心对称条件）是正确的。
 
-\subsection{网格收敛与观测阶}
+\paragraph{问题 1 本身的真解对照（Duhamel 叠加）。} 上述算例的环境是人为取为常数的；问题 1 的烘房温度实际上由 \SI{28.0}{\celsius} 升到 $\valQoneAirTempEnd\,^\circ$C，因而\eqref{eq:bessel} 并不是它的解。但附录 2 的温度方程是常系数线性方程，对\textbf{分段线性}的 $T_{\mathrm{air}}(t)$ 可由 Duhamel 叠加给出闭式级数解：以 $\mu_m=\alpha\lambda_m^2/R_0^2$、$c_m=2\mathrm{Bi}/[(\lambda_m^2+\mathrm{Bi}^2)J_0(\lambda_m)]$ 记，
+\begin{equation}
+T(\xi,t)=T_{\mathrm{air}}(t)+\sum_{m\ge1}c_m\Bigl[\bigl(T_0-T_{\mathrm{air}}(0)\bigr)\mathrm e^{-\mu_mt}-\int_0^t\mathrm e^{-\mu_m(t-s)}\,T_{\mathrm{air}}'(s)\,\dd s\Bigr]J_0(\lambda_m\xi),
+\label{eq:duhamel}
+\end{equation}
+其中最后一个积分在附件 1 的每个样本区间上是初等的（$T_{\mathrm{air}}'$ 为常数），故\eqref{eq:duhamel} 除级数截断外是\textbf{精确}的。这给出了问题 1 温度场的真解基准（MDR-0012）：表~\ref{tab:analytic} 第三组显示生产网格上表格时刻的最大误差为 \sci{\valDuhamelErrTable} \si{\celsius}、观测阶 $\valDuhamelOrder$；在 \nolinkurl{result1.xlsx} 温度工作表的\textbf{完整} $\valDuhamelCells$ 个输出单元上最大误差为 \sci{\valDuhamelErrFull} \si{\celsius}，比四位小数的半个末位 $5\times10^{-5}$ 小一个半数量级。交付的温度数据因此不是与另一套数值解、而是与解析解逐格吻合的。
 
-取 $\Delta r=0.1/2^k$ \si{\centi\meter}，$k=0,\dots,6$（$k=5$ 为生产网格），以最细网格为参照，在各问题表格所要求的时刻与位置上计算最大绝对误差 $e_k$ 与观测阶 $p_k=\log_2(e_k/e_{k+1})$，结果见表~\ref{tab:convergence}（附录~\ref{app:tables}）与图~\ref{fig:convergence}(a)。观测阶为 $\valConvOrderQthreeMoist$--$\valConvOrderQoneMoist$（问题 3、4 在粗网格上略低于 2，是因为烘干时刻本身随网格移动，误差同时包含“同一时刻的解误差”与“时刻差异”；细化后恢复二阶）。生产网格（$k=5$）上的误差为：问题 1 温度 \sci{\valConvErrQoneTemp}、问题 1 水分 \sci{\valConvErrQoneMoist}、问题 2 温度 \sci{\valConvErrQtwoTemp}、问题 2 水分 \sci{\valConvErrQtwoMoist}、问题 3 水分 \sci{\valConvErrQthreeMoist}、问题 4 水分 \sci{\valConvErrQfourMoist}，全部小于四位小数的舍入尺度，因此表格与结果文件中的每一位小数都有意义。
+\subsection{网格收敛、观测阶与四位小数的可靠性}
+\label{subsec:gridconv}
+
+取 $\Delta r=0.1/2^k$ \si{\centi\meter}，$k=0,\dots,6$（$k=5$ 为生产网格），在各问题表格所要求的时刻与位置上计算误差与观测阶，结果见表~\ref{tab:convergence}（附录~\ref{app:tables}）与图~\ref{fig:convergence}(a)。
+
+\paragraph{两种观测阶，以及为什么必须并列给出。} 自收敛研究只能以最细网格为参照，$e_k=\lVert u_k-u_m\rVert_\infty$、$p_k=\log_2(e_k/e_{k+1})$。对真实误差 $\propto h^2$ 的格式，这一估计量在最后几对网格上被\textbf{系统性抬高}：
+\[\frac{e_k}{e_{k+1}}=4\cdot\frac{1-4^{-(m-k)}}{1-4^{-(m-k-1)}},\qquad m-k=2\ \Rightarrow\ \log_2 5=2.32 .\]
+因此表~\ref{tab:convergence} 中出现的 $2.31$--$2.32$ 并非超收敛，而是参照偏置的确切数值。本文同时给出不需要参照解的\textbf{三网格}估计量 $p_k=\log_2\bigl(\lVert u_k-u_{k+1}\rVert_\infty/\lVert u_{k+1}-u_{k+2}\rVert_\infty\bigr)$（MDR-0011）：问题 1、2 的场量给出 $\valConvTripletOrderQoneTemp$--$\valConvTripletOrderQtwoMoist$，与解析解对照的 $\valAnalyticOrderTemp$（表~\ref{tab:analytic}）一致，即格式确为二阶；问题 3、4 的水分给出 $\valConvTripletOrderQthreeMoist$ 与 $\valConvTripletOrderQfourMoist$，低于 2——原因是这两问的取样时刻绑定在随网格移动的 $t_{\mathrm{end}}$ 上，误差里混入了穿零时刻的移动，这是量的性质而不是格式的缺陷。
+
+\paragraph{生产网格上的误差。} 表格时刻与位置上（$k=5$）：问题 1 温度 \sci{\valConvErrQoneTemp}、问题 1 水分 \sci{\valConvErrQoneMoist}、问题 2 温度 \sci{\valConvErrQtwoTemp}、问题 2 水分 \sci{\valConvErrQtwoMoist}、问题 3 水分 \sci{\valConvErrQthreeMoist}、问题 4 水分 \sci{\valConvErrQfourMoist}。
 
 \paperfigure{fig_convergence.pdf}{网格收敛：各问题在表格时刻与位置上相对最细网格（$\Delta r=0.1/2^{6}$ \si{\centi\meter}）的最大误差（a）与常物性算例相对贝塞尔级数解\eqref{eq:bessel} 的最大误差（b）；点线为二阶参考斜率。}{fig:convergence}
 
-烘干时间本身的收敛单列于表~\ref{tab:convergence-drytime}（附录~\ref{app:tables}）：生产网格上的 $t_{\mathrm{end}}$ 与最细网格相差 $\valConvDryDiffQthreeMin$ \si{\minute}（问题 3）与 $\valConvDryDiffQfourMin$ \si{\minute}（问题 4）。以观测阶 $p=2$ 对两级最细网格作 Richardson 外推\cite{richardson1927}，$t^\ast=t_6+(t_6-t_5)/3$，得极限估计 $\valQthreeDryHoursExtrapolated$ h 与 $\valQfourDryHoursExtrapolated$ h，相应地生产网格的离散误差不超过 $\valQthreeGridErrorMin$ \si{\minute} 与 $\valQfourGridErrorMin$ \si{\minute}，即 $t_{\mathrm{end}}$ 的两位小数（以小时计）是可靠的。
+\paragraph{结果文件完整输出网格上的误差：四位小数在哪里有意义。} 上述取样只覆盖论文表格要求的 7 个时刻，而 \nolinkurl{result1.xlsx}、\nolinkurl{result2.xlsx} 自 $t=\SI{1}{\second}$ 起每 \SI{1}{\second} 输出。$t$ 很小时表面边界层厚度 $\sqrt{Dt}$（$t=\SI{1}{\second}$ 时约 \SI{0.007}{\centi\meter}）只跨越两三个生产网格单元，误差必然大于表格时刻处的误差。为此在 $k=6,7$ 两级网格上重解问题 1、2 的\textbf{完整}输出网格，按实测的三网格阶作 Richardson 外推得极限，再逐格评估交付数组的误差（表~\ref{tab:outputgrid}，附录~\ref{app:tables}）：
+\begin{itemize}[leftmargin=*,itemsep=0.15em,topsep=0.2em]
+  \item \textbf{温度}：问题 1 最大误差 \sci{\valOutGridErrQoneTemp}、问题 2 \sci{\valOutGridErrQtwoTemp}\,\si{\celsius}，全网格无一单元超过 $5\times10^{-5}$；结合\eqref{eq:duhamel} 的真解对照（\sci{\valDuhamelErrFull} \si{\celsius}），温度的四位小数\textbf{全部}有意义。
+  \item \textbf{水分}：最大误差 \sci{\valOutGridErrQoneMoist}（问题 1）与 \sci{\valOutGridErrQtwoMoist}（问题 2），\textbf{均出现在 $t=\SI{1}{\second}$、$r=\SI{2}{\centi\meter}$}，即边界层最薄的一格。误差超过 $5\times10^{-5}$ 的单元在问题 1 共 $\valOutGridCoarseQoneMoist$ 个（占 $\valOutGridCoarsePctQoneMoist\%$，全部位于 $t\le\valOutGridCoarseSecQoneMoist$ \si{\second}），在问题 2 共 $\valOutGridCoarseQtwoMoist$ 个（占 $\valOutGridCoarsePctQtwoMoist\%$，$t\le\valOutGridCoarseSecQtwoMoist$ \si{\second}）；两者都只出现在表面最外侧的一两列。
+\end{itemize}
+\noindent\textbf{结论应当如实表述}：\nolinkurl{result1.xlsx} 的 $\valOutGridCoarseQoneMoist$ 个单元（$t\le\valOutGridCoarseSecQoneMoist$ \si{\second} 的表面附近）与 \nolinkurl{result2.xlsx} 的 $\valOutGridCoarseQtwoMoist$ 个单元（$t\le\valOutGridCoarseSecQtwoMoist$ \si{\second}）的第四位小数受离散误差影响（量级 $10^{-4}$，第三位小数仍可靠）；\textbf{其余 $99.9\%$ 以上的单元以及全部温度单元，四位小数都有意义}。论文正文的表格起自 $t=\SI{100}{\second}$（问题 1）与 $t=\SI{0.5}{\hour}$（问题 2），已在该区域之外。
+
+\subsection{烘干时间的收敛与外推}
+
+烘干时间本身的收敛单列于表~\ref{tab:convergence-drytime}（附录~\ref{app:tables}）：生产网格上的 $t_{\mathrm{end}}$ 与最细网格相差 $\valConvDryDiffQthreeMin$ \si{\minute}（问题 3）与 $\valConvDryDiffQfourMin$ \si{\minute}（问题 4）。$t_{\mathrm{end}}$ 的三网格观测阶为 $\valConvDryOrderQthree$（问题 3）与 $\valConvDryOrderQfour$（问题 4），均低于场量本身的 2；因此 Richardson 外推\cite{richardson1927}按\textbf{实测阶}而非 $p=2$ 进行，$t^\ast=t_6+(t_6-t_5)/(2^p-1)$，得极限估计 $\valQthreeDryHoursExtrapolated$ h 与 $\valQfourDryHoursExtrapolated$ h，生产网格的离散误差为 $\valQthreeGridErrorMin$ \si{\minute} 与 $\valQfourGridErrorMin$ \si{\minute}。
+
+\begin{remark}[$t_{\mathrm{end}}$ 的第二位小数]\label{rem:tend}
+问题 4 的两位小数是稳定的（生产网格 $\valQfourDryHoursFour$ h 与外推 $\valQfourDryHoursExtrapolated$ h 都给出 $\valQfourDryHours$ h）。问题 3 不然：生产网格给出 $\valQthreeDryHoursFour$ h（四舍五入为 $\valQthreeDryHours$ h），外推极限 $\valQthreeDryHoursExtrapolated$ h（四舍五入为 $\valQthreeDryHoursExtrapolatedTwo$ h），二者恰好落在 $57.475$ 这一舍入边界的两侧，离散误差 $\valQthreeGridErrorMin$ \si{\minute} 大于两位小数的分辨率 $0.005$ h。因此本文把问题 3 的答案报告为
+\[t_{\mathrm{end}}=\valQthreeDryHours\ \text{h（生产网格值，与 \nolinkurl{result3.xlsx} 一致）},\qquad
+\text{网格收敛极限 } \valQthreeDryHoursExtrapolated\ \text{h},\]
+即 $\valQthreeDryHoursExtrapolatedTwo$--$\valQthreeDryHours$ h；三位有效数字 $57.5$ h 是无歧义的。这一 $0.4$ \si{\minute} 的离散不确定度远小于解释性选择（表~\ref{tab:alternatives}）与参数不确定性带来的变化。
+\end{remark}
 
 \subsection{时间积分的无关性}
 
-表~\ref{tab:time-independence} 给出在生产网格上改变时间积分设置的结果：把容差收紧一个量级、改用隐式 Runge--Kutta 方法 Radau IIA\cite{hairer1996}、以及把最大步长强制限制为 $\Delta t\le3600,900,300$ \si{\second}。水分浓度的最大差异不超过 \sci{\valTimeRadauDiffMoist}，烘干时间的差异不超过 $\valTimeRadauDryDiffSec$ \si{\second}；把容差放松两个量级（rtol$=10^{-7}$，表~\ref{tab:time-independence} 第三行）时差异仍远小于四位小数的舍入尺度。这说明结果与时间步长序列无关，生产容差有充分余量。注：$\Delta t\le3600$ \si{\second} 一行与生产设置逐位相同，因为自适应 BDF 在本问题中从未取过超过 \SI{1}{\hour} 的步长，该行证明的是“步长限制未被触发”。
-
-\input{generated/tables/tab_time_independence.tex}
+表~\ref{tab:time-independence}（附录~\ref{app:tables}）给出在生产网格上改变时间积分设置的结果：把容差收紧一个量级、改用隐式 Runge--Kutta 方法 Radau IIA\cite{hairer1996}、以及把最大步长强制限制为 $\Delta t\le3600,900,300$ \si{\second}。水分浓度的最大差异不超过 \sci{\valTimeRadauDiffMoist}，烘干时间的差异不超过 $\valTimeRadauDryDiffSec$ \si{\second}；把容差放松两个量级（rtol$=10^{-7}$，表~\ref{tab:time-independence} 第三行）时差异仍远小于四位小数的舍入尺度。这说明结果与时间步长序列无关，生产容差有充分余量。注：$\Delta t\le3600$ \si{\second} 一行的解与生产设置\textbf{逐位相同}（水分最大差 $0$、$t_{\mathrm{end}}$ 差 \SI{0}{\second}），但右端项调用次数比生产设置多 $\valTimeStepCoarseExtraNfev$ 次——这来自限制 $\Delta t$ 后 BDF 初始步长试探的额外求值，而非不同的步序列；该行证明的是“步长限制未被触发”。
 
 \subsection{守恒量与定性性质}
 
-\paragraph{离散守恒。} 按命题~\ref{prop:conserve}，$W+Q_m$ 是半离散系统的\textbf{精确线性不变量}。校验器独立地由输出数组重算 $W(t)-W(0)$ 并与积分器内累积的 $-Q_m(t)$ 比较：四个问题的相对残差均在 $10^{-15}$ 量级（表~\ref{tab:verification}、图~\ref{fig:conservation}），达到双精度舍入极限；问题 1 的常物性温度方程另有能量不变量，残差同量级。这一检验的价值在于它检验的是\textbf{离散格式}（控制体测度、界面通量的成对相消、边界通量的施加方式）而非时间积分精度——任何一处不一致都会立即表现为 $O(1)$ 的残差。
+\paragraph{离散守恒（两个互补的残差）。} 按命题~\ref{prop:conserve}，$W+Q_m$ 是半离散系统的\textbf{精确线性不变量}。校验器算两种残差（表~\ref{tab:verification}）：
+
+\begin{enumerate}[leftmargin=*,itemsep=0.15em,topsep=0.2em]
+  \item \textbf{不变量残差}：由输出数组重算 $W(t)-W(0)$ 并与积分器内累积的 $-Q_m(t)$ 比较，四个问题均在 $10^{-15}$ 量级（图~\ref{fig:conservation}），达到双精度舍入极限。因为 $Q_m$ 本身是同一常微分系统的一个状态，这一项检验的是\textbf{离散格式}（控制体测度、界面通量的成对相消、边界通量的施加方式）：任何一处不一致都会立即表现为 $O(1)$ 的残差；它\textbf{不}检验时间积分的精度，也无法单独检出扩散系数的错误。
+  \item \textbf{重采样残差}：完全抛开 $Q_m$，直接由输出样本上的表面通量 $h_m(C_s-C_{\mathrm{air}})$ 按梯形法重算时间积分，与存量变化比较。它与时间积分解耦，但受输出间隔（\SI{60}{\second}）的梯形误差限制，四个问题为 \sci{\valSampledResidualQone}--\sci{\valSampledResidualQthree}。两者一起说明：格式严格守恒，而实际通量的时间积分也在输出分辨率允许的精度内一致。
+\end{enumerate}
+问题 1 的常物性温度方程另有能量不变量，残差同量级。
 
 \paperfigure{fig_conservation.pdf}{离散水分存量的变化与积分器内累积的表面通量之差，按最终失水量归一：四个问题的相对残差全程保持在 $10^{-15}$ 量级（双精度舍入），确认离散格式严格守恒。}{fig:conservation}
 
@@ -57,7 +91,7 @@
 
 \subsection{结果文件与表格的一致性检查}
 
-四个结果工作簿由附件 3 的模板生成（不重建工作簿结构），并由自动契约逐项检查：工作表名称、首行与首列与模板逐格一致，行数与时间步长符合题目要求，数值区无非数字单元、小数位不超过四位，问题 4 中超出当前半径的单元为空且“药材表面”列完整。全部契约检查通过（附录~\ref{app:repro}）。论文表格与结果文件由同一份求解结果生成，因此逐位一致：\nolinkurl{result3.xlsx} 共 $\valQthreeResultRows$ 个时间行（末行 $\valQthreeDryHoursGrid$ h）、\nolinkurl{result4.xlsx} 共 $\valQfourResultRows$ 行。
+四个结果工作簿（以及补充交付的 \nolinkurl{result2\_全过程.xlsx}）由附件 3 的模板生成（不重建工作簿结构），并由自动契约逐项检查：工作表名称与模板一致、A1 文字与模板一致、首行的距离刻度落在 $0,0.5,1,1.5,2$ \si{\centi\meter} 的应有位置、表头单元数（\nolinkurl{result4.xlsx} 为 23，含“药材表面”列）、A 列时间的\textbf{步长与起点}（\SI{1}{\second}／\SI{60}{\second}）、行数区间、数值区无非数字单元、小数位不超过四位、问题 4 中且仅在超出当前半径处留空。全部契约检查通过（附录~\ref{app:repro}）。论文表格与结果文件由同一份求解结果生成，因此逐位一致：\nolinkurl{result3.xlsx} 共 $\valQthreeResultRows$ 个时间行、\nolinkurl{result4.xlsx} 共 $\valQfourResultRows$ 行。
 
 \subsection{灵敏度与不确定性}
 \label{subsec:sensitivity}
@@ -71,15 +105,15 @@
 \begin{enumerate}[leftmargin=*,itemsep=0.2em]
   \item \textbf{烘房温度平台}的弹性最大（$\valElasTplateau$）：$D$ 的 Arrhenius 因子把温度的相对变化放大了 $E/T_K$ 倍（一个数量级以上）。表~\ref{tab:sensitivity} 给出平台值 $\times1.1$ 与 $\times1.2$ 时的烘干时间，缩短幅度相当可观；但实际工艺中提高温度受药材有效成分热稳定性的限制（第~\ref{sec:evaluation} 节）。
   \item \textbf{扩散系数前因子} $D_0$ 的弹性为 $\valElasDzero$（问题 3）与 $\valElasDzeroQfour$（问题 4），接近 $-1$：这正是扩散控制过程的特征（$t\propto1/D$）。$D_0$ 是经验拟合量，其不确定性直接、几乎等比例地传递到烘干时间，是本模型最主要的参数不确定性来源。
-  \item \textbf{收缩幅度} $s$ 的弹性为 $\valElasShrink$，与 $t\propto R^2$ 的标度一致，再次确认收缩通过缩短扩散路径起作用。
+  \item \textbf{收缩幅度} $s$ 定义为对\textbf{收缩量}的缩放：$R(t;s)=R_0-s\,[R_0-R_{\text{附件 2}}(t)]$，$s=1$ 即题给数据，$s=1.2$ 表示收缩量放大 $20\%$（末半径由 $\valQfourRadiusFinalCm$ 降到 $\valShrinkRadiusHighCm$ \si{\centi\meter}），$s=0.8$ 则升到 $\valShrinkRadiusLowCm$ \si{\centi\meter}。实测弹性 $\valElasShrink$，而由 $t\propto R_\infty^2$ 给出的标度预测为 $\dd\ln t/\dd\ln s=-2s(R_0-R_\infty)/R_\infty=\valShrinkScalingPrediction$；实测略小于预测，因为收缩需要时间完成，前期仍以较大的半径扩散。二者同号同量级，再次确认收缩通过缩短扩散路径起作用。
   \item \textbf{传质系数} $h_m$ 的弹性只有 $\valElasHm$，\textbf{换热系数} $h$ 几乎为零（$\valElasH$），\textbf{烘房湿度} $C_{\mathrm{air}}$ 为 $\valElasCair$。结论：在题给参数下，过程由内部扩散控制，强化外部对流（加大风速）对缩短烘干时间几乎无效。
 \end{enumerate}
 
-\paragraph{不确定性预算。} 把上述结果整理为 $t_{\mathrm{end}}$ 的误差来源：\emph{数值离散}（网格 $\le\valQthreeGridErrorMin$ \si{\minute}，时间积分 $\le\valTimeRadauDryDiffSec$ \si{\second}，一维化 $\valEndEffectDryDiffPct\%$）合计远小于 $0.1\%$；\emph{解释性选择}（平台取法 $\valAltPlateauLastSamplePct\%$、界面平均 $\valAltFaceHarmonicPct\%$）不超过 $1\%$；\emph{参数不确定性}（若 $D_0$ 有 $\pm20\%$ 的拟合误差）使 $t_{\mathrm{end}}$ 在表~\ref{tab:sensitivity} 的 $\times0.8$ 与 $\times1.2$ 两行之间变动，约为两成；而\emph{判据的表述}（“各处” vs “平均”）可带来 $\valAltQthreeMeanCriterionPct\%$ 的改变。因此本文报告的 $t_{\mathrm{end}}$ 在题给模型内部是精确的，其现实不确定性主要来自经验公式的拟合精度与工艺判据的定义，而非数值方法。
+\paragraph{不确定性预算。} 把上述结果整理为 $t_{\mathrm{end}}$ 的误差来源：\emph{数值离散}（网格 $\le\valQthreeGridErrorMin$ \si{\minute}，时间积分 $\le\valTimeRadauDryDiffSec$ \si{\second}，一维化 $\valEndEffectDryDiffPct\%$）合计远小于 $0.1\%$；\emph{离散化与插值的解释性选择}（平台取法 $\valAltPlateauLastSamplePct\%$、界面平均 $\valAltFaceHarmonicPct\%$）不超过 $1\%$，收缩域写法 $\valQfourAltDiffPct\%$；\emph{守恒写法}（是否按 $\rho_s$ 加权，注~\ref{rem:massform}）$\valAltMassConservativePct\%$；\emph{参数不确定性}（若 $D_0$ 有 $\pm20\%$ 的拟合误差）使 $t_{\mathrm{end}}$ 在表~\ref{tab:sensitivity} 的 $\times0.8$ 与 $\times1.2$ 两行之间变动，约为两成；而\emph{判据的表述}（“各处” vs “平均”）可带来 $\valAltQthreeMeanCriterionPct\%$ 的改变。因此本文报告的 $t_{\mathrm{end}}$ 在题给模型内部是精确到 $0.4$ \si{\minute} 的，其现实不确定性主要来自经验公式的拟合精度、水分守恒的写法与工艺判据的定义，而非数值方法。
 
 \subsection{备选解释的对照}
 \label{subsec:alternatives}
 
-第~\ref{sec:q1} 节以来所作的每一处解释都给出了备选结果（表~\ref{tab:alternatives}）：恒温阶段平台值的三种取法相差不超过 $\valAltPlateauLastSamplePct\%$；界面系数三种取法相差不超过 $\valAltFaceHarmonicPct\%$；问题 4 的实验室坐标写法相差 $\valQfourAltDiffPct\%$；半径固定的对照相差 $\valQfourFixedDiffPct\%$（用于分离收缩与物性两种效应）；判据改用体积平均相差 $\valAltQthreeMeanCriterionPct\%$。可见除判据本身外，所有解释性选择都只带来百分之几以内的变化，主结果是稳健的。
+第~\ref{subsec:ambiguity} 小节列出的每一处解释都给出了备选结果（表~\ref{tab:alternatives}）：恒温阶段平台值的三种取法相差不超过 $\valAltPlateauLastSamplePct\%$；界面系数三种取法相差不超过 $\valAltFaceHarmonicPct\%$；问题 4 的实验室坐标写法相差 $\valQfourAltDiffPct\%$；半径固定的对照相差 $\valQfourFixedDiffPct\%$（用于分离收缩与物性两种效应）；\textbf{守恒型水分方程}相差 $\valAltMassConservativePct\%$；判据改用体积平均相差 $\valAltQthreeMeanCriterionPct\%$。可见数值与插值层面的解释只带来百分之几以内的变化；真正主导答案的是两处\textbf{建模层面}的表述——水分守恒的写法（约 $-19\%$）与烘干判据的定义（约 $-37\%$），两者都已在第~\ref{subsec:ambiguity} 小节明确声明并在此定量给出。
 
 \input{generated/tables/tab_alternatives.tex}

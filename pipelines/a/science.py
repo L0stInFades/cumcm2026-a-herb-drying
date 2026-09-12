@@ -489,7 +489,17 @@ def _output_grid_study(ctx: StageContext, refine: int, opts: dict[str, Any]) -> 
             bad_rows = np.where(differing.any(axis=1))[0]
             last_t = float(times[bad_rows[-1]]) if len(bad_rows) else 0.0
             after = err[times > last_t]
+            # the digit-flip count is dominated by values that happen to sit on a rounding boundary; the
+            # decisive statistic is how many cells carry a discretisation error above half an ulp of the
+            # fourth decimal (5e-5), i.e. cells whose fourth decimal is genuinely not resolved
+            coarse = err > 5e-5
+            coarse_rows = np.where(coarse.any(axis=1))[0]
+            last_coarse_t = float(times[coarse_rows[-1]]) if len(coarse_rows) else 0.0
+            beyond = err[times > last_coarse_t]
             out[f"{prob}_{field}"] = {
+                "cells_above_half_ulp": int(coarse.sum()),
+                "last_above_half_ulp_t_s": last_coarse_t,
+                "error_after_half_ulp": float(beyond.max()) if beyond.size else 0.0,
                 "grid_levels": levels,
                 "observed_order": order,
                 "order_used": used,
@@ -622,6 +632,10 @@ def convergence(ctx: StageContext) -> dict[str, Any]:
         ctx.number(f"OutGridCellPct{tag}", 100.0 * row["cells_differing"] / row["cells_total"], ".2f")
         ctx.number(f"OutGridLastDiffSec{tag}", row["last_differing_t_s"], ".0f")
         ctx.number(f"OutGridErrAfter{tag}", row["error_after_last_differing"], ".1e")
+        ctx.number(f"OutGridCoarse{tag}", row["cells_above_half_ulp"])
+        ctx.number(f"OutGridCoarsePct{tag}", 100.0 * row["cells_above_half_ulp"] / row["cells_total"], ".2f")
+        ctx.number(f"OutGridCoarseSec{tag}", row["last_above_half_ulp_t_s"], ".0f")
+        ctx.number(f"OutGridErrCoarse{tag}", row["error_after_half_ulp"], ".1e")
     orders = {}
     for key, rows in report["grid"].items():
         if key.endswith(("_t_dry", "_times_h")):
@@ -647,6 +661,7 @@ def convergence(ctx: StageContext) -> dict[str, Any]:
     ctx.number("TimeRadauDiffMoist", report["time"]["tol:radau"]["max_abs_diff_moist"], ".1e")
     ctx.number("TimeStrictDryDiffSec", abs(report["time"]["tol:strict"]["t_dry_diff_s"]), ".2f")
     ctx.number("TimeRadauDryDiffSec", abs(report["time"]["tol:radau"]["t_dry_diff_s"]), ".2f")
+    ctx.number("TimeStepCoarseExtraNfev", int(report["time"]["dt:3600"]["nfev"]) - int(base["stats"]["nfev"]))
     ctx.number("TimeStepCoarseDiffMoist", report["time"]["dt:3600"]["max_abs_diff_moist"], ".1e")
     ctx.number("TimeStepCoarseDryDiffSec", abs(report["time"]["dt:3600"]["t_dry_diff_s"]), ".2f")
     ctx.number("TimeStepFineDiffMoist", report["time"]["dt:300"]["max_abs_diff_moist"], ".1e")

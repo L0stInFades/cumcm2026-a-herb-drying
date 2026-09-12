@@ -369,8 +369,9 @@ def tables(ctx: StageContext) -> dict[str, Any]:
             f"{row['production_error']:.2e}",
             f"{row['max_at_t_s']:g} s / {row['max_at_r_cm']:g} cm",
             f"{row['observed_order']:.2f}",
-            f"{row['cells_differing']:d}（{100.0 * row['cells_differing'] / row['cells_total']:.2f}\\%）",
-            f"{row['last_differing_t_s']:g}",
+            f"{row['cells_above_half_ulp']:d}",
+            f"{row['last_above_half_ulp_t_s']:g}",
+            f"{row['error_after_half_ulp']:.1e}",
         ]
         for key, row in og.items()
     ]
@@ -380,12 +381,13 @@ def tables(ctx: StageContext) -> dict[str, Any]:
             "tab_outputgrid",
             "结果文件完整输出网格（每 1 s $\\times$ 每 0.1 cm）上的离散误差与四位小数的可靠性",
             "tab:outputgrid",
-            ["量", "单元数", "最大误差", "误差最大处", "三网格阶", "第四位小数不同的单元", "最后一处/s"],
+            ["量", "单元数", "最大误差", "误差最大处", "三网格阶", "误差 $>5\\times10^{-5}$ 的单元", "最后一处/s", "此后最大误差"],
             rows_og,
-            digits=[0, 0, 0, 0, 0, 0, 0],
-            align="lrrlrrr",
-            note="误差相对由 $k=6,7$ 两级网格作 Richardson 外推得到的极限；"
-            "“最后一处”之后的全部输出时刻上，交付值与外推极限的四位小数完全一致。",
+            digits=[0, 0, 0, 0, 0, 0, 0, 0],
+            align="lrrlrrrr",
+            note="误差相对由 $k=6,7$ 两级网格作 Richardson 外推得到的极限。"
+            "$5\\times10^{-5}$ 是四位小数的半个末位：误差低于它的单元，第四位小数由离散误差决定的可能性已被排除；"
+            "“最后一处”之后的全部输出时刻上误差见末列。",
         )
 
     # sensitivity

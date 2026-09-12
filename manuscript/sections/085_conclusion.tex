@@ -1,0 +1,35 @@
+\label{sec:conclusion}
+表~\ref{tab:summary} 汇总四个问题的答案；每个数字都可在对应小节与结果文件中逐格核对。
+
+\begin{table}[htbp]
+\centering
+\caption{四个问题的主要结果汇总（详见对应小节；结果文件由附件 3 的模板生成）}
+\label{tab:summary}
+\small
+\begin{tabular}{@{}llll@{}}
+\toprule
+问题 & 主要答案 & 交付文件 & 详见 \\
+\midrule
+1（预热平衡，附录 2）
+ & \SI{1800}{\second}：中心 $\valQoneCentreTempEnd\,^\circ$C / $\valQoneCentreMoistEnd$，表面 $\valQoneSurfaceTempEnd\,^\circ$C / $\valQoneSurfaceMoistEnd$；失水 $\valQoneMoistLossPct\%$
+ & \nolinkurl{result1.xlsx} & 第~\ref{sec:q1} 节 \\
+2（全过程，附录 3）
+ & \SI{3}{\hour}：中心 $\valQtwoCentreTempThreeH\,^\circ$C / $\valQtwoCentreMoistThreeH$，表面 $\valQtwoSurfaceMoistThreeH$；失水 $\valQtwoMoistLossPct\%$
+ & \nolinkurl{result2.xlsx}、\nolinkurl{result2\_全过程.xlsx} & 第~\ref{sec:q2} 节 \\
+3（烘干时长）
+ & $t_{\mathrm{end}}=\valQthreeDryHours$ h（$\valQthreeDryDays$ 天；外推 $\valQthreeDryHoursExtrapolated$ h），由\textbf{中心}控制
+ & \nolinkurl{result3.xlsx} & 第~\ref{sec:q3} 节 \\
+4（尺寸变化）
+ & $t_{\mathrm{end}}=\valQfourDryHours$ h，末半径 $\valQfourRadiusAtDryCm$ \si{\centi\meter}；同物性固定半径需 $\valQfourDryHoursFixed$ h
+ & \nolinkurl{result4.xlsx} & 第~\ref{sec:q4} 节 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\noindent 三条跨问题的结论：
+
+\begin{enumerate}[leftmargin=*,itemsep=0.15em,topsep=0.2em]
+  \item \textbf{过程由内部扩散控制。} 传质 Biot 数由 $\valQtwoBiotMassInit$ 升到 $10^3$ 量级，烘干时间对 $h$ 的弹性只有 $\valElasH$、对 $h_m$ 为 $\valElasHm$，而对扩散前因子 $D_0$ 为 $\valElasDzero$、对烘房温度平台为 $\valElasTplateau$。工艺上应提温或减小尺寸，加大风速无效。
+  \item \textbf{“各处低于 0.15”是最敏感的一处表述。} 满足它需要 $\valQthreeDryHours$ h，而此时体积平均含水率已低至 $\valQthreeMeanMoistAtDry$ \si{\kilo\gram\per\kilo\gram}；改用平均含水率判据只需 $\valAltQthreeMeanCriterionHours$ h（$\valAltQthreeMeanCriterionPct\%$）。判据的定义比任何参数的 $\pm20\%$ 扰动都更决定答案。
+  \item \textbf{数值上的答案是可核查的，物理上的答案还有已知的偏差方向。} 离散与时间积分误差合计远小于 $0.1\%$（第~\ref{sec:validation} 节），解释性选择中最大的两项为守恒写法（$\valAltMassConservativePct\%$）与判据表述（$\valAltQthreeMeanCriterionPct\%$）；题给模型省略了蒸发潜热，界定分析表明真实烘干时间很可能比主结果长 $\valExtCappedPct\%$--$\valExtCapLocalPct\%$（第~\ref{subsec:extension} 小节）。
+\end{enumerate}
