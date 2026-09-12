@@ -9,6 +9,8 @@
 - 模块：`pipelines/a/physics.py`（附录物性、烘房条件、半径）、`solver.py`、`verify.py`（与求解器分离的校验器）、`common.py`、`science.py`、`outputs.py`、`figures.py`。
 - MDR-0001 … MDR-0007；`docs/DATA_NOTES.md`；`docs/RESULTS.md`；`tests/unit/test_drying.py`（物理、求解器、校验器的单元/性质测试）。
 - `configs/default.toml` 新增 `[a.*]` 配置段；`paper.sources` 与 `package.stages` 登记新增阶段。
+- `extension` 阶段（MDR-0008，模型评价）：问题 3 解的蒸发潜热一致性后验诊断、烘房湿空气解读（Magnus 饱和蒸气压、ASHRAE 湿球温度）、湿球能量上限下的恒速段变体与纯能量下界、平衡含水率驱动力 C_eq 的界定分析；`tab_extension`、`fig_extension`；求解器增加可选的蒸发通量上限（默认关闭，守恒不变量保持）；`tests/unit/test_extension.py`。
+- `docs/mdr/0008-*.md`；`[a.extension]` 配置段；`package.stages` 登记 `extension`。
 
 ## [0.1.0] - 2026-09-12
 

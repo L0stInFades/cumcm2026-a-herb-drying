@@ -2,8 +2,8 @@
 
 本文件汇总最终云端运行的全部科学结果：每个问题的方法、关键数值、表格/图文件、`ctx.number` 键名、验证结论、局限与备选解释。所有数值均来自 `numbers.json`（论文中用 `\val<Key>` 引用）与 `tables` 阶段生成的 `tables/*.tex`，禁止手抄。
 
-- 最终 run：`20260912-042323-b639c9c`（代码 `b639c9c`）。
-- 阶段：ingest, validate, q1, q2, q3, q4, convergence, verification, sensitivity, results, figures, tables, lint, test（全部 completed）。
+- 最终 run：`RUN_ID_FINAL`（代码 `COMMIT_FINAL`）。
+- 阶段：ingest, validate, q1, q2, q3, q4, convergence, verification, sensitivity, extension, results, figures, tables, lint, test, paper, qa（全部 completed；qa 含 `result:*` 契约检查）。
 - 生产网格：Δr = 0.1/2⁵ = 0.003125 cm（641 节点，`\valGridNodes`、`\valGridDrCm`）；时间积分 BDF，rtol=1e-9、atol=1e-11（`\valTimeRtol`、`\valTimeAtol`），在附件 1 的每个样本时刻与附件 2 的每个节点重启（MDR-0004）。
 
 ## 统一模型（MDR-0001 … 0004）
@@ -63,9 +63,22 @@
 - 表 `tab_sensitivity.tex`：h、h_m、D₀、C_air、T 平台、收缩幅度 s 的 ×0.8/0.9/1.1/1.2 烘干时间与弹性（键 ElasH, ElasHm, ElasDzero, ElasCair, ElasTplateau, ElasShrink, ElasDzeroQfour）；图 `fig_sensitivity.pdf`。
 - 表 `tab_alternatives.tex`：平台取末样本/名义值、界面系数算术/调和平均、欧拉写法、固定半径、平均含水率判据（键 Alt…Hours / Alt…Pct）。
 
+## 模型评价扩展（extension，MDR-0008）——供"模型评价与推广"一节使用
+
+主结果严格按题给参数与边界条件计算；本阶段量化题给模型省略的两项物理机制（问题 3 设定，固定半径、附录 3 物性），不改变问题 1–4 的答案。
+
+- 潜热一致性诊断（后验，由问题 3 的解计算）：题给传质律隐含的蒸发质量通量 $j_w=\rho_{s0}h_m(C_s-C_{\mathrm{air}})$（干固体密度 $\rho_{s0}=\rho(C_0)/(1+C_0)$=`\valExtDrySolidDensity` kg/m³），其潜热负荷折算为"等效表面温降" $\Delta T_{\mathrm{lat}}=L_v j_w/h$：初始 `\valExtLatentDeltaTPeak` K，3 h 时 `\valExtLatentDeltaTThreeH` K，12 h 时 `\valExtLatentDeltaTTwelveH` K，24 h 时 `\valExtLatentDeltaTTwentyFourH` K；降到 1 K 以下的时刻 `\valExtLatentBelowOneKHours` h（0.1 K 以下 `\valExtLatentBelowTenthKHours` h）。全程蒸发水量 `\valExtWaterRemovedKg` kg/m（单位长度），潜热 `\valExtLatentEnergyMJ` MJ/m，而题给能量边界条件全程供入的对流热量仅 `\valExtConvEnergyKJ` kJ/m（= 显热储量），比值 `\valExtLatentToConvRatio`。结论：题给模型在前十余小时高估药材温度（因而高估 D），后期潜热可忽略；这是题给参数体系的固有简化（MDR-0008 备选 1 说明直接耦合不适定）。
+- 烘房状态的湿空气解读（把"水分浓度"读作含湿量 kg/kg 干空气）：初始 28 °C、RH `\valExtRhInitPct`%（湿球 `\valExtWetBulbInit` °C）；恒温阶段 50 °C、RH `\valExtRhPlateauPct`%，湿球 `\valExtWetBulbPlateau` °C，湿球温差 `\valExtWetBulbDepression` K；对流供热可维持的蒸发通量上限 $j_{\max}=h(T_{\mathrm{air}}-T_{\mathrm{wb}})/L_v$ = `\valExtFluxCapPlateau` kg/(m²·s) = `\valExtFluxCapPlateauKgPerHour` kg/(m²·h)，而题给模型的初始蒸发通量 `\valExtModelFluxInit` kg/(m²·s) 为初始上限的 `\valExtFluxRatioInit` 倍。
+- 情形 A（能量限制/恒速段）：蒸发通量取 $\min\{h_m(C_s-C_{\mathrm{air}}),\,j_{\max}(t)/\rho_{s0}\}$，烘干时间 `\valExtCappedHours` h（相对主结果 `\valExtCappedPct`%），上限在 `\valExtCappedReleaseHours` h 后不再起作用（此后与题给模型相同的降速段）；上限 ×0.5、×2 的结果 `\valExtCapOneHours` / `\valExtCapThreeHours` h（`\valExtCapOnePct`% / `\valExtCapThreePct`%）。纯能量下界（全程按湿球极限蒸发）`\valExtEnergyBoundHours` h（`\valExtEnergyBoundPct`%）——主结果远高于该下界，说明题给模型的烘干时长由内部扩散控制而非能量供给控制。
+- 情形 B（平衡含水率驱动力 $C_s-C_{\mathrm{eq}}$）：$C_{\mathrm{eq}}$=`\valExtCeqOneValue`/`\valExtCeqTwoValue`/`\valExtCeqThreeValue` 时烘干时间 `\valExtCeqOneHours`/`\valExtCeqTwoHours`/`\valExtCeqThreeHours` h（`\valExtCeqOnePct`/`\valExtCeqTwoPct`/`\valExtCeqThreePct`%）；$C_{\mathrm{eq}}\to0.15$ 时烘干时间趋于无穷，说明 0.15 kg/kg 的终点判据必须与烘房湿度（等温吸附曲线）匹配。注意该单调性不是普遍的：驱动力越小表面越湿，而 $D\propto\exp(-a/C)$ 使湿表面的扩散系数大得多——在附录 2 的律（$a=0.89$）下 $C_{\mathrm{eq}}=0.10$ 反而比 0.05 略快（干表面形成低 $D$ 硬壳，"case hardening"；见 `tests/unit/test_extension.py` 的说明），附录 3（$a=0.45$）下则单调变慢；常数 $D$ 时可证单调（线性问题，阈值 $(0.15-C_{\mathrm{eq}})/(2.55-C_{\mathrm{eq}})$ 随 $C_{\mathrm{eq}}$ 减小）。
+- 表：`tab_extension.tex`（题给模型、能量限制 ×0.5/1/2、C_eq 三档、纯能量下界）。图：`fig_extension.pdf`（建议图注："模型评价扩展：(a) 题给模型蒸发率的潜热等效温降 $L_v j_w/h$ 与模型实际温差 $T_{\mathrm{air}}-T_s$（对数坐标，点线为 1 K）；(b) 题给模型、能量限制与平衡含水率驱动力三种情形下的中心水分时程，点线为 0.15 kg/kg。"）。
+- numbers 键：ExtDrySolidDensity, ExtRhInitPct, ExtRhPlateauPct, ExtWetBulbInit, ExtWetBulbPlateau, ExtWetBulbDepression, ExtLatentHeatMJ, ExtFluxCapPlateau, ExtFluxCapPlateauKgPerHour, ExtFluxCapInit, ExtModelFluxInit, ExtFluxRatioInit, ExtLatentDeltaTPeak, ExtLatentDeltaTThreeH, ExtLatentDeltaTTwelveH, ExtLatentDeltaTTwentyFourH, ExtLatentBelowOneKHours, ExtLatentBelowTenthKHours, ExtLatentEnergyMJ, ExtConvEnergyKJ, ExtLatentToConvRatio, ExtWaterRemovedKg, ExtEnergyBoundHours, ExtEnergyBoundPct, ExtCappedHours, ExtCappedPct, ExtCappedReleaseHours, ExtCap{One,Two,Three}{Factor,Hours,Pct,ReleaseHours}, ExtCeq{One,Two,Three}{Value,Hours,Pct}。
+- 验证：`extension/verification_extension.json`——每个情形的守恒（含通量上限的损失律）、极值原理、单调性与判据一致性检查全部通过。
+- 假设与局限：湿空气解读依赖"水分浓度=含湿量"的读法（DATA_NOTES）；$L_v$、Magnus 公式、ASHRAE 湿球方程为标准常数/公式；$\rho_{s0}$ 取初始值；情形 A 只限制质量通量、不改变能量方程（温度仍按题给模型），因此仍是界定性分析而非完整耦合模型。
+
 ## 局限
 
-平衡含水率与等温吸附未建模（表面条件为题给线性形式）；蒸发潜热对能量方程的耦合未计入；各向同性均匀收缩假设；h、h_m 恒定；一维近似（端部效应已量化）；附件 1 之后的烘房条件为平台外推。
+平衡含水率与等温吸附未建模（表面条件为题给线性形式；`extension` 给出 C_eq 的界定分析）；蒸发潜热对能量方程的耦合未计入（`extension` 给出后验诊断与能量限制情形）；各向同性均匀收缩假设；h、h_m 恒定；一维近似（端部效应已量化）；附件 1 之后的烘房条件为平台外推。
 
 ## 数据与图表文件清单
 

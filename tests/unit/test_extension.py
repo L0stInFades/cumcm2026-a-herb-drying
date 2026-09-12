@@ -76,13 +76,19 @@ def test_flux_cap_limits_early_loss_and_keeps_the_balance_exact() -> None:
     assert slug("cap:1.0") == "cap_1p0"
 
 
-def test_equilibrium_moisture_driving_force_lengthens_drying() -> None:
-    props = replace(APPENDIX2, d0=7e-7)  # fast drying for the test
+def test_equilibrium_moisture_driving_force_bounds_the_surface_and_is_monotone_for_constant_d() -> None:
+    # constant D: the problem is linear, max C < 0.15 <=> theta < (0.15 - C_eq)/(2.55 - C_eq), so a larger C_eq
+    # must take longer; with the exponential D(C) of the appendices a drier surface forms a low-D crust and the
+    # ordering is not guaranteed (case hardening), which is exactly what the extension stage quantifies.
+    props = replace(APPENDIX2, d_const=2e-8)
     base = ProblemSpec(props, Chamber.constant(50.0, 0.05), Radius.constant())
     slow = replace(base, chamber=Chamber.constant(50.0, 0.10))
-    t_base = solve_until_dry(base, 20, 60.0, horizon=3600.0).t_dry
-    t_slow = solve_until_dry(slow, 20, 60.0, horizon=3600.0).t_dry
-    assert t_base is not None and t_slow is not None and t_slow > 1.2 * t_base
+    sol_base = solve_until_dry(base, 20, 60.0, horizon=3600.0)
+    sol_slow = solve_until_dry(slow, 20, 60.0, horizon=3600.0)
+    assert sol_base.t_dry is not None and sol_slow.t_dry is not None
+    assert sol_slow.t_dry > sol_base.t_dry
+    assert sol_slow.moist[:, -1].min() >= 0.10 - 1e-9  # the surface never drops below the driving-force floor
+    assert sol_slow.dry_profile is not None and sol_slow.dry_profile.max() == pytest.approx(0.15, abs=1e-6)
 
 
 def test_latent_diagnostic_scales_with_the_evaporation_flux() -> None:
