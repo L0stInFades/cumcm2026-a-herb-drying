@@ -12,6 +12,11 @@
 - `extension` 阶段（MDR-0008，模型评价）：问题 3 解的蒸发潜热一致性后验诊断、烘房湿空气解读（Magnus 饱和蒸气压、ASHRAE 湿球温度）、湿球能量上限下的恒速段变体与纯能量下界、平衡含水率驱动力 C_eq 的界定分析；`tab_extension`、`fig_extension`；求解器增加可选的蒸发通量上限（默认关闭，守恒不变量保持）；`tests/unit/test_extension.py`。
 - `docs/mdr/0008-*.md`；`[a.extension]` 配置段；`package.stages` 登记 `extension`。
 
+### Verified（run 20260912-102714-108fa95，代码 108fa95）
+- 17 个阶段（ingest … test, paper, qa）全部 completed；qa 16/16 通过（含 result1–4.xlsx 契约）；lint 0 项；45 项测试通过。
+- 独立校验：q1–q4、verification（贝塞尔级数解 1×10⁻⁵、二维交叉检验）、extension 的校验报告全部 `passed=true`。
+- 身份信息观察名单命中 5 处，均为附录程序清单中 `configs/default.toml` 打印的观察名单模式本身（"大学、学院、赛区、队号、指导教师"），不含任何身份信息；复核结论：无需处理。
+
 ## [0.1.0] - 2026-09-12
 
 ### Added
@@ -22,8 +27,3 @@
 
 ### Verified
 - 三题仓库全链路冒烟通过：25 项单元/性质/集成测试，13 项论文与结果 QA 检查，发布散列核对一致。
-
-### Verified（run 20260912-102714-108fa95，代码 108fa95）
-- 17 个阶段（ingest … test, paper, qa）全部 completed；qa 16/16 通过（含 result1–4.xlsx 契约）；lint 0 项；45 项测试通过。
-- 独立校验：q1–q4、verification（贝塞尔级数解 1×10⁻⁵、二维交叉检验）、extension 的校验报告全部 `passed=true`。
-- 身份信息观察名单命中 5 处，均为附录程序清单中 `configs/default.toml` 打印的观察名单模式本身（"大学、学院、赛区、队号、指导教师"），不含任何身份信息；复核结论：无需处理。
