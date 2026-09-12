@@ -1,1 +1,89 @@
-（模型检验待撰写：收敛性 / 独立校验 / 稳定性 / 灵敏度与不确定性分析。）
+本节按验证与确认（verification \& validation）的标准框架\cite{roache1998,oberkampf2010}检验前四节的结果：\textbf{验证}回答"方程解对了吗"（离散误差、收敛阶、守恒性、实现正确性），\textbf{确认}回答"解对了方程吗"（与解析解、与独立实现、与物理合理性的对照）。所有检验由\textbf{与求解器代码分离}的校验器完成：校验器只读取求解结果数组，自行重算平衡量与解析解，不调用求解器的任何内部函数（见附录~\ref{app:code} 中的 \nolinkurl{pipelines/a/verify.py} 与 \nolinkurl{pipelines/a/solver.py}）。表~\ref{tab:verification} 汇总四个问题的校验结论，下面逐项说明。
+
+\input{generated/tables/tab_verification.tex}
+
+\subsection{与解析级数解的对照}
+\label{subsec:analytic}
+
+取常物性、恒定环境的无限长圆柱（问题 1 的温度方程正是这一情形），则\eqref{eq:heat}--\eqref{eq:robin} 有分离变量的解析解：记 $\theta=(u-u_\infty)/(u_0-u_\infty)$、$\mathrm{Fo}=at/R_0^2$、$\mathrm{Bi}=\beta R_0/a'$（$a$ 为扩散系数、$\beta$ 为传递系数），则
+\begin{equation}
+\theta(\xi,\mathrm{Fo})=\sum_{m=1}^{\infty}\frac{2\,\mathrm{Bi}}{(\lambda_m^2+\mathrm{Bi}^2)\,J_0(\lambda_m)}\,J_0(\lambda_m\xi)\,\mathrm{e}^{-\lambda_m^2\mathrm{Fo}},
+\qquad \lambda_m J_1(\lambda_m)=\mathrm{Bi}\,J_0(\lambda_m),
+\label{eq:bessel}
+\end{equation}
+特征值 $\lambda_m$ 位于 $J_0$ 的相邻零点之间，由 Brent 法求得（取 400 项，截断误差远小于比较量级）\cite{carslaw1959,crank1975}。分别以 $\mathrm{Bi}=\valAnalyticBiotHeat$（温度，$a=\alpha$）与 $\mathrm{Bi}_m=\valAnalyticBiotMass$（把 $D$ 冻结为 $D(C_0)$ 的水分方程）作对照，结果见表~\ref{tab:analytic} 与图~\ref{fig:convergence}(b)：误差随 $\Delta r$ 干净地二阶下降，观测阶 $\valAnalyticOrderTemp$（温度）与 $\valAnalyticOrderMoist$（水分）；在生产网格上最大绝对误差为 $\valAnalyticErrTemp\,^\circ$C 与 $\valAnalyticErrMoist$ \si{\kilo\gram\per\kilo\gram}，比四位小数的舍入尺度 $5\times10^{-5}$ 小约一个数量级。这同时确认了离散格式的实现（控制体测度、半控制体上的 Robin 通量、轴心对称条件）是正确的。
+
+\input{generated/tables/tab_analytic.tex}
+
+\subsection{网格收敛与观测阶}
+
+取 $\Delta r=0.1/2^k$ \si{\centi\meter}，$k=0,\dots,6$（$k=5$ 为生产网格），以最细网格为参照，在各问题表格所要求的时刻与位置上计算最大绝对误差 $e_k$ 与观测阶 $p_k=\log_2(e_k/e_{k+1})$，结果见表~\ref{tab:convergence} 与图~\ref{fig:convergence}(a)。观测阶为 $\valConvOrderQthreeMoist$--$\valConvOrderQoneMoist$（问题 3、4 在粗网格上略低于 2，是因为烘干时刻本身随网格移动，误差同时包含"同一时刻的解误差"与"时刻差异"；细化后恢复二阶）。生产网格（$k=5$）上的误差为：问题 1 温度 $\valConvErrQoneTemp$、问题 1 水分 $\valConvErrQoneMoist$、问题 2 温度 $\valConvErrQtwoTemp$、问题 2 水分 $\valConvErrQtwoMoist$、问题 3 水分 $\valConvErrQthreeMoist$、问题 4 水分 $\valConvErrQfourMoist$，全部小于四位小数的舍入尺度，因此表格与结果文件中的每一位小数都有意义。
+
+\input{generated/tables/tab_convergence.tex}
+
+\paperfigure{fig_convergence.pdf}{网格收敛：各问题在表格时刻与位置上相对最细网格（$\Delta r=0.1/2^{6}$ \si{\centi\meter}）的最大误差（a）与常物性算例相对贝塞尔级数解\eqref{eq:bessel} 的最大误差（b）；点线为二阶参考斜率。}{fig:convergence}
+
+烘干时间本身的收敛单列于表~\ref{tab:convergence-drytime}：生产网格上的 $t_{\mathrm{end}}$ 与最细网格相差 $\valConvDryDiffQthreeMin$ \si{\minute}（问题 3）与 $\valConvDryDiffQfourMin$ \si{\minute}（问题 4）。以观测阶 $p=2$ 对两级最细网格作 Richardson 外推\cite{richardson1927}，$t^\ast=t_6+(t_6-t_5)/3$，得极限估计 $\valQthreeDryHoursExtrapolated$ h 与 $\valQfourDryHoursExtrapolated$ h，相应地生产网格的离散误差不超过 $\valQthreeGridErrorMin$ \si{\minute} 与 $\valQfourGridErrorMin$ \si{\minute}，即 $t_{\mathrm{end}}$ 的两位小数（以小时计）是可靠的。
+
+\input{generated/tables/tab_convergence_drytime.tex}
+
+\subsection{时间积分的无关性}
+
+表~\ref{tab:time-independence} 给出在生产网格上改变时间积分设置的结果：把容差收紧一个量级、改用隐式 Runge--Kutta 方法 Radau IIA\cite{hairer1996}、以及把最大步长强制限制为 $\Delta t\le3600,900,300$ \si{\second}。水分浓度的最大差异不超过 $\valTimeRadauDiffMoist$，烘干时间的差异不超过 $\valTimeRadauDryDiffSec$ \si{\second}；把容差放松两个量级（rtol$=10^{-7}$，表~\ref{tab:time-independence} 第三行）时差异仍远小于四位小数的舍入尺度。这说明结果与时间步长序列无关，生产容差有充分余量。注：$\Delta t\le3600$ \si{\second} 一行与生产设置逐位相同，因为自适应 BDF 在本问题中从未取过超过 \SI{1}{\hour} 的步长，该行证明的是"步长限制未被触发"。
+
+\input{generated/tables/tab_time_independence.tex}
+
+\subsection{守恒量与定性性质}
+
+\paragraph{离散守恒。} 按命题~\ref{prop:conserve}，$W+Q_m$ 是半离散系统的\textbf{精确线性不变量}。校验器独立地由输出数组重算 $W(t)-W(0)$ 与积分器内累积的 $-Q_m(t)$ 并比较：四个问题的相对残差均在 $10^{-15}$ 量级（表~\ref{tab:verification}、图~\ref{fig:conservation}），即达到双精度舍入极限。问题 1 的常物性温度方程另有能量不变量，残差同量级。需要强调的是，这一检验的价值在于它检验的是\textbf{离散格式}（控制体测度、界面通量的成对相消、边界通量的施加方式）而非时间积分精度——任何一处不一致都会立即表现为 $O(1)$ 的残差。
+
+\paperfigure{fig_conservation.pdf}{离散水分存量的变化与积分器内累积的表面通量之差，按最终失水量归一：四个问题的相对残差全程保持在 $10^{-15}$ 量级（双精度舍入），确认离散格式严格守恒。}{fig:conservation}
+
+\paragraph{极值原理与单调性。} 校验器在全部输出时刻检查：(i) $T$ 落在 $[\min(T_0,\min T_{\mathrm{air}}),\max(T_0,\max T_{\mathrm{air}})]$ 内、$C$ 落在 $[\min(C_0,\min C_{\mathrm{air}}),C_0]$ 内（命题~\ref{prop:extremum}）；(ii) $C$ 沿 $r$ 单调不增；(iii) $\max_rC$ 在中心取得。三项在四个问题中全部成立（表~\ref{tab:verification}），因此不存在非物理的负含水率、超调或内部极值。
+
+\paragraph{判据的一致性。} 校验器独立检查：在 $t<t_{\mathrm{end}}$ 的全部输出行上 $\max_iC_i\ge C^\ast$，在 $t\ge t_{\mathrm{end}}$ 的全部行上 $\max_iC_i<C^\ast$，且 $t_{\mathrm{end}}$ 处的剖面最大值等于 $C^\ast$（误差 $<10^{-12}$）。这确认事件求根定位的确实是判据首次成立的时刻。
+
+\paragraph{退化检验。} 问题 4 的移动边界代码在 $R\equiv R_0$ 时应退化为固定域格式。两种写法与固定域求解器之差为 $\valQfourDegenerateMaxDiff$，为舍入量级。
+
+\subsection{独立实现的交叉检验与一维化的端部效应}
+\label{subsec:endeffect}
+
+为检验\textbf{实现}本身以及假设~\ref{as:1d}，本文另行编写了一个二维轴对称（$r,z$）有限体积程序，直接在物理坐标下离散，不共享一维求解器的任何代码，轴向网格 $\Delta z=\valEndEffectDzCm$ \si{\centi\meter}：
+
+\begin{enumerate}[leftmargin=*,itemsep=0.2em]
+  \item \textbf{代码独立性}：端面取绝热/不透条件时，二维解在中截面上应与一维解完全一致。实测最大差异为 $\valCrossCheckDiffMoist$（水分）与 $\valCrossCheckDiffTemp$ \si{\celsius}（温度），为积分容差量级——两套独立编写的程序给出同一答案。
+  \item \textbf{端部效应}：端面同样施加 Robin 条件时，中截面的水分浓度与一维解相差 $\valEndEffectMidplaneDiff$，中心点在烘干时刻的差异为 $\valEndEffectCentreDiffAtDry$，烘干时间由 $\valEndEffectDryHoursOneD$ h 变为 $\valEndEffectDryHoursTwoD$ h，相对变化 $\valEndEffectDryDiffPct\%$。
+\end{enumerate}
+
+端部效应之小与第~\ref{subsec:q1analysis} 小节的量级判断一致：水分的轴向 Fourier 数上界仅 $\valFoAxialMassUpper$，端面的影响来不及扩散到中截面。图~\ref{fig:endeffect} 显示轴向水分分布只在端面附近的薄层内偏离中截面值。因此假设~\ref{as:1d}（一维径向化）被定量确认。
+
+\paperfigure{fig_endeffect.pdf}{端部效应：一维烘干结束时刻二维模型中心线（$r=0$）上沿轴向的水分浓度分布（a）；一维解与二维解在中截面与端面处的中心水分时程（b）。端面附近的额外干燥只影响端部薄层，不影响中截面，烘干时间的相对变化仅 $\valEndEffectDryDiffPct\%$。}{fig:endeffect}
+
+\subsection{结果文件与表格的一致性检查}
+
+四个结果工作簿由附件 3 的模板生成（不重建工作簿结构），并由自动契约逐项检查：工作表名称与模板一致、首行首列与模板逐格一致、行数与时间步长符合题目要求、数值区无非数字单元、小数位不超过四位、问题 4 中超出当前半径的单元为空且"药材表面"列完整。全部契约检查通过（附录~\ref{app:repro} 的阶段清单）。论文表格与结果文件由同一份求解结果生成，因此二者逐位一致：例如表~\ref{tab:q3-moist} 的末行与 \nolinkurl{result3.xlsx} 的末行对应同一时刻（分别为精确的 $t_{\mathrm{end}}$ 与其 \SI{60}{\second} 网格取整 $\valQthreeDryHoursGrid$ h），\nolinkurl{result3.xlsx} 共 $\valQthreeResultRows$ 个时间行、\nolinkurl{result4.xlsx} 共 $\valQfourResultRows$ 行。
+
+\subsection{灵敏度与不确定性}
+\label{subsec:sensitivity}
+
+对六个可能存在不确定性的量分别取 $\times0.8,0.9,1.1,1.2$ 重新求解，以烘干时间 $t_{\mathrm{end}}$ 为指标，用 $\pm10\%$ 的中心差分估计弹性 $E_p=(\Delta t_{\mathrm{end}}/t_{\mathrm{end}})/(\Delta p/p)$（表~\ref{tab:sensitivity}、图~\ref{fig:sensitivity}）：
+
+\input{generated/tables/tab_sensitivity.tex}
+
+\paperfigure[0.72\linewidth]{fig_sensitivity.pdf}{烘干时间对各参数的弹性（$\pm10\%$ 中心差分）。负值表示参数增大使烘干变快。烘房温度平台、扩散系数前因子与收缩幅度是主导因素，对流换热系数几乎无影响。}{fig:sensitivity}
+
+\begin{enumerate}[leftmargin=*,itemsep=0.2em]
+  \item \textbf{烘房温度平台}的弹性最大（$\valElasTplateau$）：$D$ 的 Arrhenius 因子把温度的相对变化放大了 $E/T_K$ 倍（一个数量级以上）。表~\ref{tab:sensitivity} 给出平台值 $\times1.1$ 与 $\times1.2$ 时的烘干时间，缩短幅度相当可观；但实际工艺中提高温度受药材有效成分热稳定性的限制（第~\ref{sec:evaluation} 节）。
+  \item \textbf{扩散系数前因子} $D_0$ 的弹性为 $\valElasDzero$（问题 3）与 $\valElasDzeroQfour$（问题 4），接近 $-1$：这正是扩散控制过程的特征（$t\propto1/D$）。$D_0$ 是经验拟合量，其不确定性直接、几乎等比例地传递到烘干时间，是本模型最主要的参数不确定性来源。
+  \item \textbf{收缩幅度} $s$ 的弹性为 $\valElasShrink$，与 $t\propto R^2$ 的标度一致，再次确认收缩通过缩短扩散路径起作用。
+  \item \textbf{传质系数} $h_m$ 的弹性只有 $\valElasHm$，\textbf{换热系数} $h$ 几乎为零（$\valElasH$），\textbf{烘房湿度} $C_{\mathrm{air}}$ 为 $\valElasCair$。结论：在题给参数下，过程由内部扩散控制，强化外部对流（加大风速）对缩短烘干时间几乎无效。
+\end{enumerate}
+
+\paragraph{不确定性预算。} 把上述结果整理为 $t_{\mathrm{end}}$ 的误差来源：\emph{数值离散}（网格 $\le\valQthreeGridErrorMin$ \si{\minute}，时间积分 $\le\valTimeRadauDryDiffSec$ \si{\second}，一维化 $\valEndEffectDryDiffPct\%$）合计远小于 $0.1\%$；\emph{解释性选择}（平台取法 $\valAltPlateauLastSamplePct\%$、界面平均 $\valAltFaceHarmonicPct\%$）不超过 $1\%$；\emph{参数不确定性}（若 $D_0$ 有 $\pm20\%$ 的拟合误差）使 $t_{\mathrm{end}}$ 在表~\ref{tab:sensitivity} 的 $\times0.8$ 与 $\times1.2$ 两行之间变动，约为两成；而\emph{判据的表述}（"各处" vs "平均"）可带来 $\valAltQthreeMeanCriterionPct\%$ 的改变。因此本文报告的 $t_{\mathrm{end}}$ 在题给模型内部是精确的，其现实不确定性主要来自经验公式的拟合精度与工艺判据的定义，而非数值方法。
+
+\subsection{备选解释的对照}
+\label{subsec:alternatives}
+
+第~\ref{sec:q1} 节以来所作的每一处解释都给出了备选结果（表~\ref{tab:alternatives}）：恒温阶段平台值的三种取法相差不超过 $\valAltPlateauLastSamplePct\%$；界面系数三种取法相差不超过 $\valAltFaceHarmonicPct\%$；问题 4 的实验室坐标写法相差 $\valQfourAltDiffPct\%$；半径固定的对照相差 $\valQfourFixedDiffPct\%$（用于分离收缩与物性两种效应）；判据改用体积平均相差 $\valAltQthreeMeanCriterionPct\%$。可见除判据本身外，所有解释性选择都只带来百分之几以内的变化，主结果是稳健的。
+
+\input{generated/tables/tab_alternatives.tex}
