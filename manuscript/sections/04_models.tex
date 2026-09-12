@@ -36,7 +36,7 @@ T(r,0)&=T_0=\SI{28}{\celsius},\qquad C(r,0)=C_0=\SI{2.55}{\kilo\gram\per\kilo\gr
 \subsection{无量纲数与两个时间尺度}
 \label{subsec:q1analysis}
 
-以附录 2 的参数与初始状态计算：热扩散率 $\alpha=k/(\rho c_p)=\valQoneAlpha$ \si{\square\meter\per\second}，初始扩散系数 $D(C_0)=\valQoneDinit$ \si{\square\meter\per\second}，
+以附录 2 的参数与初始状态计算：热扩散率 $\alpha=k/(\rho c_p)=\sci{\valQoneAlpha}$ \si{\square\meter\per\second}，初始扩散系数 $D(C_0)=\sci{\valQoneDinit}$ \si{\square\meter\per\second}，
 \[
 \mathrm{Bi}=\frac{hR_0}{k}=\valQoneBiotHeat,\qquad
 \mathrm{Bi}_m=\frac{h_mR_0}{D(C_0)}=\valQoneBiotMass,\qquad
@@ -51,8 +51,11 @@ $\mathrm{Bi}\approx1.4$ 说明内、外热阻相当，集总参数法（$\mathrm
 \[\xi_i=i\,\Delta\xi,\quad i=0,1,\dots,n,\quad \Delta\xi=1/n,\]
 控制体为 $[\xi_{i-1/2},\xi_{i+1/2}]$，其中 $\xi_{i\pm1/2}=\xi_i\pm\Delta\xi/2$，并约定 $\xi_{-1/2}=0$、$\xi_{n+1/2}=1$，即轴心与表面处为\textbf{半控制体}。控制体的径向测度（已除以 $2\pi R^2$）为
 \begin{equation}
+\begin{gathered}
 V_i=\int_{\xi_{i-1/2}}^{\xi_{i+1/2}}\!\xi\,\dd\xi=\tfrac12\bigl(\xi_{i+1/2}^2-\xi_{i-1/2}^2\bigr),
-\qquad V_0=\tfrac{\Delta\xi^2}{8},\quad V_i=\xi_i\Delta\xi\ (0<i<n),\quad V_n=\tfrac{\Delta\xi}{2}-\tfrac{\Delta\xi^2}{8}.
+\\[-2pt]
+ V_0=\tfrac{\Delta\xi^2}{8},\qquad V_i=\xi_i\Delta\xi\ (0<i<n),\qquad V_n=\tfrac{\Delta\xi}{2}-\tfrac{\Delta\xi^2}{8}.
+\end{gathered}
 \label{eq:volumes}
 \end{equation}
 把\eqref{eq:mass} 在控制体上积分并用散度定理，内部界面通量取二阶中心差分
@@ -139,7 +142,7 @@ $\mathcal K\leftarrow$ 附件 1 的样本时刻 $\cup$ 平台切换时刻 $\cup$
 \Return{采样结果、$t_{\mathrm{end}}$、$Q_m,Q_h$}
 \end{algorithm}
 
-\paragraph{复杂度与参数。} 每个 BDF 步的代价为 $O(N)$（带状 LU），总代价 $O(N\cdot N_{\text{步}})$。生产设置为 $n=\valGridNodes-1$（$\Delta r=\valGridDrCm$ \si{\centi\meter}，使 \SI{0.1}{\centi\meter} 的输出点恰好落在节点上，$\Delta r=0.1/2^5$ \si{\centi\meter}）、$\varepsilon_r=\valTimeRtol$、$\varepsilon_a=\valTimeAtol$。问题 3 的完整求解共 $\valQthreeNfev$ 次右端项调用、$\valQthreeNlu$ 次 LU 分解，单次求解在 8 核云端实例上不足 \SI{30}{\second}。
+\paragraph{复杂度与参数。} 每个 BDF 步的代价为 $O(N)$（带状 LU），总代价 $O(N\cdot N_{\text{步}})$。生产网格共 $\valGridNodes$ 个节点，$\Delta r=\valGridDrCm$ \si{\centi\meter}$\,=0.1/2^5$ \si{\centi\meter}，使 \SI{0.1}{\centi\meter} 的输出点恰好落在节点上；容差 $\varepsilon_r=\sci{\valTimeRtol}$、$\varepsilon_a=\sci{\valTimeAtol}$。问题 3 的完整求解共 $\valQthreeNfev$ 次右端项调用、$\valQthreeNlu$ 次 LU 分解，单次求解在 8 核云端实例上不足 \SI{30}{\second}。
 
 \subsection{问题一的结果与分析}
 
@@ -150,9 +153,9 @@ $\mathcal K\leftarrow$ 附件 1 的样本时刻 $\cup$ 平台切换时刻 $\cup$
 
 \paperfigure{fig_q1_profiles.pdf}{问题 1：表~\ref{tab:q1-temp}、表~\ref{tab:q1-moist} 各时刻的温度（a）与水分浓度（b）径向剖面。\SI{1800}{\second} 内热扩散已渗透到中心（中心温度明显高于初值），而水分的变化仍限制在表层约 \SI{0.5}{\centi\meter}，与 $\mathrm{Fo}=\valQoneFourierHeat$、$\mathrm{Fo}_m=\valQoneFourierMass$ 的量级判断一致。}{fig:q1profiles}
 
-\paperfigure{fig_q1_history.pdf}{问题 1：中心、表面与烘房温度（a）以及中心、表面、体积平均水分浓度（b）的时程。表面温度始终低于烘房温度 $\valQoneSurfaceTempLag$ \si{\kelvin} 左右（$\mathrm{Bi}=\valQoneBiotHeat$，内阻与外阻相当）；平均水分浓度近似按 $\sqrt t$ 规律下降，这是半无限介质扩散的特征。}{fig:q1history}
+\paperfigure{fig_q1_history.pdf}{问题 1：中心、表面与烘房温度（a）以及中心、表面、体积平均水分浓度（b）的时程。表面温度始终低于烘房温度（\SI{1800}{\second} 时相差 $\valQoneSurfaceTempLag$ \si{\kelvin}），中心又低于表面，与 $\mathrm{Bi}=\valQoneBiotHeat$（内阻与外阻相当）一致；中心水分浓度在全程保持初值，体积平均含水率的下降速率随表层变干而逐渐减慢。}{fig:q1history}
 
-\paragraph{结果分析。} (i) \SI{1800}{\second} 时中心温度 $\valQoneCentreTempEnd\,^\circ$C、表面温度 $\valQoneSurfaceTempEnd\,^\circ$C，同时刻烘房温度为 $\valQoneAirTempEnd\,^\circ$C：表面比烘房低 $\valQoneSurfaceTempLag$ \si{\kelvin}，中心又明显低于表面（表~\ref{tab:q1-temp}）。温度在整个截面上的不均匀度远小于药材与烘房的温差，说明预热阶段的限制环节是\textbf{外部对流}与\textbf{烘房升温速率}，而不是药材内部导热。
+\paragraph{结果分析。} (i) \SI{1800}{\second} 时中心温度 $\valQoneCentreTempEnd\,^\circ$C、表面温度 $\valQoneSurfaceTempEnd\,^\circ$C，同时刻烘房温度为 $\valQoneAirTempEnd\,^\circ$C：表面比烘房低 $\valQoneSurfaceTempLag$ \si{\kelvin}，中心又明显低于表面（表~\ref{tab:q1-temp}）。截面上的不均匀度（中心与表面之差）与表面到烘房的温差是同一量级，这正是 $\mathrm{Bi}=\valQoneBiotHeat\approx1$ 的含义：内部导热热阻与外部对流热阻相当，二者共同决定预热速率，因而既不能用集总参数法、也不能假定表面温度等于烘房温度。
 (ii) 水分浓度在 $r\le\SI{1}{\centi\meter}$ 处四位小数下仍为初值 $\valQoneCentreMoistEnd$，表面降至 $\valQoneSurfaceMoistEnd$，体积平均为 $\valQoneMeanMoistEnd$，即 \SI{30}{\minute} 内失水 $\valQoneMoistLossPct\%$。表面附近出现陡峭的边界层：这正是 $\mathrm{Bi}_m=\valQoneBiotMass>1$ 与 $\mathrm{Fo}_m\ll1$ 的表现。
 (iii) 该结构对后续问题有直接含义：干燥初期的失水几乎全部来自表层，表层含水率迅速下降使 $D\propto\mathrm{e}^{-0.89/C}$ 显著减小，从而自发形成低扩散率的"硬壳"，把整个过程推向内部扩散控制。
 
@@ -163,15 +166,17 @@ $\mathcal K\leftarrow$ 附件 1 的样本时刻 $\cup$ 平台切换时刻 $\cup$
 \subsection{模型的改变}
 问题 2 覆盖预热平衡与恒温干燥两个阶段，统一采用附录 3 的经验公式（题目要求"相关经验公式统一采用附录 3 中的公式"）：
 \begin{equation}
-\rho=650+128C,\quad c_p=1450+2736\frac{C}{C+1},\quad k=0.21+0.38\frac{C}{C+1},\quad
+\begin{gathered}
+\rho=650+128C,\qquad c_p=1450+2736\tfrac{C}{C+1},\qquad k=0.21+0.38\tfrac{C}{C+1},\\[-2pt]
 D=2.4\times10^{-3}\,\mathrm{e}^{-0.45/C}\,\mathrm{e}^{-3850/T_K},
+\end{gathered}
 \label{eq:app3}
 \end{equation}
 其中 $T_K=T+273.15$ 为绝对温度。控制方程、边界条件与初值仍为\eqref{eq:heat}--\eqref{eq:init}，$h$、$h_m$ 沿用附录 2 的值（假设~\ref{as:boundary}）。与问题 1 相比有三点实质变化：
 
 \begin{enumerate}[leftmargin=*,itemsep=0.2em]
   \item \textbf{双向耦合。} $\rho,c_p,k$ 依赖 $C$，$D$ 依赖 $C$ 与 $T$，温度场与水分场\textbf{双向}耦合，不再有解析解。
-  \item \textbf{扩散系数的温度激活。} $D$ 含 Arrhenius 因子 $\mathrm{e}^{-3850/T_K}$，$\dd\ln D/\dd T=E/T_K^2$。在同一含水率 $C_0$ 下，温度由 \SI{28}{\celsius} 升到恒温阶段的平台值使 $D$ 由 $\valQtwoDinit$ 增大到 $\valDmaxAppendixThree$ \si{\square\meter\per\second}，即增大一倍以上。因此预热阶段虽然失水不多，却通过升温为后续干燥"解锁"了扩散能力。
+  \item \textbf{扩散系数的温度激活。} $D$ 含 Arrhenius 因子 $\mathrm{e}^{-3850/T_K}$，$\dd\ln D/\dd T=E/T_K^2$。在同一含水率 $C_0$ 下，温度由 \SI{28}{\celsius} 升到恒温阶段的平台值使 $D$ 由 \sci{\valQtwoDinit} 增大到 \sci{\valDmaxAppendixThree} \si{\square\meter\per\second}，即增大一倍以上。因此预热阶段虽然失水不多，却通过升温为后续干燥"解锁"了扩散能力。
   \item \textbf{与含水率的竞争。} 因子 $\mathrm{e}^{-0.45/C}$ 随 $C$ 减小而减小。干燥初期升温占优（$D$ 增大），后期失水占优（$D$ 急剧减小）。图~\ref{fig:properties} 给出三组附录物性的 $D(C,T)$ 与热扩散率。
 \end{enumerate}
 
@@ -190,7 +195,7 @@ D=2.4\times10^{-3}\,\mathrm{e}^{-0.45/C}\,\mathrm{e}^{-3850/T_K},
 
 \paragraph{结果分析。} (i) \SI{3}{\hour} 时中心温度 $\valQtwoCentreTempThreeH\,^\circ$C、表面 $\valQtwoSurfaceTempThreeH\,^\circ$C（表~\ref{tab:q2-temp}），截面温差已进入小数点后第一位；中心温度达到烘房温度 \SI{1}{\kelvin} 以内所需时间为 $\valQtwoCentreWithinOneKelvinHours$ h，与热扩散时间尺度 $\tau_{\text{热}}$ 及烘房自身的升温时间相当。\textbf{此后可以认为药材是等温的}，这为后续把注意力集中在水分方程提供了依据。
 (ii) \SI{3}{\hour} 时中心水分 $\valQtwoCentreMoistThreeH$、表面 $\valQtwoSurfaceMoistThreeH$、体积平均 $\valQtwoMeanMoistThreeH$ \si{\kilo\gram\per\kilo\gram}，累计失水 $\valQtwoMoistLossPct\%$——远高于问题 1 的 $\valQoneMoistLossPct\%$，因为温度升高把 $D$ 整体抬高。
-(iii) 一个值得注意的现象：\SI{3}{\hour} 时表面的扩散系数 $D=\valQtwoDsurfaceThreeH$ \si{\square\meter\per\second}，\textbf{大于}初始值 $\valQtwoDinit$ \si{\square\meter\per\second}，尽管表面含水率已从 $2.55$ 降到 $\valQtwoSurfaceMoistThreeH$。这说明在前 \SI{3}{\hour} 内温度激活仍压过含水率下降的影响；转折发生在含水率降到约 \SI{0.5}{\kilo\gram\per\kilo\gram} 之后（图~\ref{fig:properties}(a)）。相应地，传质 Biot 数由 $\valQoneBiotMass$ 降到 $\valQtwoBiotMassThreeH$，随后在干燥后期又升到 $10^3$ 量级。
+(iii) 一个值得注意的现象：\SI{3}{\hour} 时表面的扩散系数 $D=\valQtwoDsurfaceThreeH$ \si{\square\meter\per\second}，\textbf{大于}初始值 \sci{\valQtwoDinit} \si{\square\meter\per\second}，尽管表面含水率已从 $2.55$ 降到 $\valQtwoSurfaceMoistThreeH$。这说明在前 \SI{3}{\hour} 内温度激活仍压过含水率下降的影响；转折发生在含水率降到约 \SI{0.5}{\kilo\gram\per\kilo\gram} 之后（图~\ref{fig:properties}(a)）。相应地，传质 Biot 数由 $\valQoneBiotMass$ 降到 $\valQtwoBiotMassThreeH$，随后在干燥后期又升到 $10^3$ 量级。
 (iv) 表 3、表 4 的时刻均落在附件 1 的覆盖范围内，因此问题 2 的结果不依赖假设~\ref{as:chamber} 中的平台外推。
 
 \FloatBarrier
@@ -215,7 +220,7 @@ t_{\mathrm{end}}=\inf\Bigl\{t>0:\ \max_{0\le r\le R_0}C(r,t)<C^\ast\Bigr\},\qqua
 
 \paragraph{结果分析。} (i) \textbf{烘干所需时间为 $t_{\mathrm{end}}=\valQthreeDryHours$ h（$\valQthreeDryDays$ 天）}，落在题目所述"一般持续 2--3 天"的范围内——这是一个独立于数值细节的合理性旁证。
 (ii) 过程高度不均衡：体积平均含水率在 $\valQthreeHalfLossHours$ h 内即损失一半，而把\textbf{中心}降到 $C^\ast$ 需要 $\valQthreeDryHours$ h。烘干结束时表面含水率仅 $\valQthreeSurfaceMoistAtDry$、体积平均为 $\valQthreeMeanMoistAtDry$ \si{\kilo\gram\per\kilo\gram}，即为了满足"各处低于 0.15"，大部分物料被过度干燥。若改用体积平均含水率作判据，只需 $\valAltQthreeMeanCriterionHours$ h（$\valAltQthreeMeanCriterionPct\%$）——判据的表述是本问题中最敏感的建模决策，远超任何参数的 $\pm20\%$ 扰动（表~\ref{tab:sensitivity}、表~\ref{tab:alternatives}）。
-(iii) 机理上，长尾来自扩散系数的自反馈：表面含水率降到 $0.05$ 量级后 $D$ 降至 $\valDsurfaceAtDryQthree$ \si{\square\meter\per\second}，比初始值小 $\valDratioQthree$ 倍，传质 Biot 数升到约 $\valBiotMassAtDryQthree$。此时表面对流早已不是瓶颈（对 $h_m$ 的弹性仅 $\valElasHm$），\textbf{过程完全由内部扩散控制}。
+(iii) 机理上，长尾来自扩散系数的自反馈：表面含水率降到 $0.05$ 量级后 $D$ 降至 \sci{\valDsurfaceAtDryQthree} \si{\square\meter\per\second}，比初始值小 $\valDratioQthree$ 倍，传质 Biot 数升到约 $\valBiotMassAtDryQthree$。此时表面对流早已不是瓶颈（对 $h_m$ 的弹性仅 $\valElasHm$），\textbf{过程完全由内部扩散控制}。
 (iv) 因此工艺上缩短烘干时间的有效手段是提高烘房温度（弹性 $\valElasTplateau$，因为 $D$ 的 Arrhenius 因子）或减小特征尺寸（问题 4），而不是加大风速（提高 $h$、$h_m$）。
 
 \FloatBarrier
@@ -250,18 +255,20 @@ t_{\mathrm{end}}=\inf\Bigl\{t>0:\ \max_{0\le r\le R_0}C(r,t)<C^\ast\Bigr\},\qqua
 \pdv{\hat C}{t}\Big|_{\xi}=\frac{1}{R^2}\cdot\frac1\xi\pdv{}{\xi}\Bigl(D\,\xi\,\pdv{\hat C}{\xi}\Bigr)+\xi\,\frac{\dot R}{R}\,\pdv{\hat C}{\xi}.
 \label{eq:eulerian}
 \end{equation}
-此时水分总量的变化等于表面通量积分再加上 $C_sR\dot R$ 一项——被退缩的边界扫出计算域的水分被"丢弃"，总量不守恒（校验器测得这一伪损失约占总失水的 $34\%$）。因此本文以\eqref{eq:lagrangian} 为主模型，把\eqref{eq:eulerian} 的结果作为对照（表~\ref{tab:alternatives}、表~\ref{tab:q4-moist-alt}）。
+此时水分总量的变化等于表面通量积分再加上 $C_sR\dot R$ 一项——被退缩的边界扫出计算域的水分被"丢弃"，总量不守恒（校验器测得这一伪损失占总失水的三成以上）。因此本文以\eqref{eq:lagrangian} 为主模型，把\eqref{eq:eulerian} 的结果作为对照（表~\ref{tab:alternatives}、表~\ref{tab:q4-moist-alt}）。
 
 \paperfigure{fig_chamber.pdf}{边界数据：附件 1 的烘房温度（a）与水分浓度（b）及恒温干燥阶段的平台值（末 \SI{1}{\hour} 样本均值，假设~\ref{as:chamber}）；附件 2 的半径样本与保单调 PCHIP 插值 $R(t)$（c，为清晰起见每 \SI{2}{\hour} 标一个样本点）。}{fig:chamber}
 
 \paragraph{实现。} 第~\ref{subsec:fv} 小节的离散本来就写在 $\xi$ 上，因此只需把常数 $R_0^2$ 换成 $R^2(t)$（Lagrangian）或再加上\eqref{eq:eulerian} 的对流项（Eulerian，界面用中心差分、表面用三点单侧差分）。$R(t)$ 由附件 2 的样本作保单调 PCHIP 插值\cite{fritsch1980}（保证 $R$ 不出现非物理的回升），\SI{72}{\hour} 之后保持末值。物性改用附录 4：
 \begin{equation}
-\rho=760+90C,\quad c_p=1850+2150\frac{C}{C+1},\quad k=0.12+0.20\frac{C}{C+1},\quad
+\begin{gathered}
+\rho=760+90C,\qquad c_p=1850+2150\tfrac{C}{C+1},\qquad k=0.12+0.20\tfrac{C}{C+1},\\[-2pt]
 D=4.2\times10^{-4}\,\mathrm{e}^{-0.30/C}\,\mathrm{e}^{-3850/T_K}.
+\end{gathered}
 \label{eq:app4}
 \end{equation}
 
-\paragraph{退化检验。} 令 $R\equiv R_0$（但仍走移动边界的代码路径），两种写法都应退化为固定域格式。实测与固定域求解器之差为 $\valQfourDegenerateMaxDiff$，为舍入误差量级，说明移动边界的实现没有引入额外误差。
+\paragraph{退化检验。} 令 $R\equiv R_0$（但仍走移动边界的代码路径），两种写法都应退化为固定域格式。实测与固定域求解器之差为 \sci{\valQfourDegenerateMaxDiff}，为舍入误差量级，说明移动边界的实现没有引入额外误差。
 
 \subsection{结果与分析}
 
@@ -272,4 +279,4 @@ D=4.2\times10^{-4}\,\mathrm{e}^{-0.30/C}\,\mathrm{e}^{-3850/T_K}.
 \paragraph{结果分析。} (i) \textbf{考虑尺寸变化后的烘干时长为 $t_{\mathrm{end}}=\valQfourDryHours$ h（$\valQfourDryHoursFour$ h，$\valQfourDryDays$ 天）}，此时半径已收缩到 $\valQfourRadiusAtDryCm$ \si{\centi\meter}；表 6 中 $r=1.5$、\SI{2}{\centi\meter} 两列在所有时刻均超出当前半径，故留空（结果文件同样留空，并另设"药材表面"列）。
 (ii) 收缩的作用可以定量解释。保持附录 4 的物性而把半径固定在 \SI{2}{\centi\meter}，烘干需要 $\valQfourDryHoursFixed$ h，是移动边界结果的 $\valQfourFixedToMovingRatio$ 倍；而扩散时间尺度 $\propto R^2$，末半径对应的比值为 $(R_0/R_\infty)^2=\valQfourRadiusRatioSquared$。两个数字量级一致（收缩需要时间完成，故实际加速略小于上界），说明\textbf{收缩通过缩短扩散路径主导了加速}，末半径处的截面积只剩初始的 $\valQfourAreaRatioPct\%$。
 (iii) 与问题 3 的 $\valQthreeDryHours$ h 相比，问题 4 更短（$\valQfourDryHours$ h），但这是两个效应叠加的结果：附录 4 的扩散系数在高含水率段比附录 3 小约 $\valDratioThreeToFourInit$ 倍（使干燥变慢），而收缩使之变快且占优。因此\textbf{不能}把问题 3 与问题 4 的时间差简单归因于"尺寸变化"，必须用同物性对照（第 (ii) 点）才能分离两种效应——这是本文把固定半径参照一并计算的原因。
-(iv) 实验室坐标备选写法给出 $\valQfourDryHoursAlt$ h，比主模型长 $\valQfourAltDiffPct\%$（表~\ref{tab:q4-moist-alt}）。差异方向可以解释：该写法丢弃了被退缩边界扫出的水分，却同时丢弃了这部分物质所占的体积，净效果是早期剖面偏湿（图~\ref{fig:q4}(b)）。两者之差 $3\%$ 量级给出了"收缩如何处理"这一解释不确定性的规模。
+(iv) 实验室坐标备选写法给出 $\valQfourDryHoursAlt$ h，比主模型长 $\valQfourAltDiffPct\%$（表~\ref{tab:q4-moist-alt}，附录~\ref{app:tables}）。差异方向可以解释：该写法丢弃了被退缩边界扫出的水分，却同时丢弃了这部分物质所占的体积，净效果是早期剖面偏湿（图~\ref{fig:q4}(b)）。两者之差 $3\%$ 量级给出了"收缩如何处理"这一解释不确定性的规模。

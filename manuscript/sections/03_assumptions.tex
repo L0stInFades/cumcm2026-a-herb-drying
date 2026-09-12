@@ -51,7 +51,8 @@ $T_{\mathrm{air}}(t)$、$C_{\mathrm{air}}(t)$ 在药材表面处处相同；在�
 \subsection{符号说明}
 下表列出全文使用的主要符号；其余符号在首次出现处定义。除特别说明外一律使用国际单位制，含水率为干基（\si{\kilo\gram} 水/\si{\kilo\gram} 干物质）。
 
-\begin{longtable}{@{}llll@{}}
+\begingroup\small
+\begin{longtable}{@{}p{0.12\linewidth}p{0.33\linewidth}p{0.25\linewidth}p{0.25\linewidth}@{}}
 \toprule 符号 & 含义 & 单位 & 取值/来源 \\* \midrule \endhead \bottomrule \endfoot
 $t$ & 时间 & \si{\second} & --- \\
 $r$ & 到药材中心（轴）的距离 & \si{\meter} & $0\le r\le R(t)$ \\
@@ -61,17 +62,17 @@ $\xi$ & 无量纲径向坐标 $r/R(t)$（Landau 坐标） & --- & $\xi\in[0,1]$ 
 $T$ & 药材温度；$T_s=T(R,t)$ 为表面温度 & \si{\celsius} & $T(r,0)=\SI{28}{\celsius}$ \\
 $T_K$ & 绝对温度 $T+273.15$ & \si{\kelvin} & 用于 $D$ 的公式 \\
 $C$ & 药材水分浓度（干基含水率）；$C_s=C(R,t)$ & \si{\kilo\gram\per\kilo\gram} & $C(r,0)=2.55$ \\
-$\bar C$ & 体积平均水分浓度 & \si{\kilo\gram\per\kilo\gram} & $\bar C=\frac{2}{R^2}\int_0^R\!C r\,\mathrm{d}r$ \\
+$\bar C$ & 体积平均水分浓度 & \si{\kilo\gram\per\kilo\gram} & $\frac{2}{R^2}\int_0^R\!C r\,\mathrm{d}r$ \\
 $T_{\mathrm{air}},C_{\mathrm{air}}$ & 烘房温度与水分浓度 & \si{\celsius}, \si{\kilo\gram\per\kilo\gram} & 附件 1 + 平台值 \\
 $\rho,c_p,k$ & 密度、比热容、热传导系数 & \si{\kilo\gram\per\cubic\meter}, \si{\joule\per\kilo\gram\per\kelvin}, \si{\watt\per\meter\per\kelvin} & 附录 2--4 \\
 $D$ & 水分浓度扩散系数 $D_0\mathrm{e}^{-a/C}\mathrm{e}^{-E/T_K}$ & \si{\square\meter\per\second} & 附录 2--4 \\
-$\alpha$ & 热扩散率 $k/(\rho c_p)$ & \si{\square\meter\per\second} & $\valQoneAlpha$（附录 2） \\
+$\alpha$ & 热扩散率 $k/(\rho c_p)$ & \si{\square\meter\per\second} & \sci{\valQoneAlpha}（附录 2） \\
 $h,h_m$ & 对流换热系数、对流传质系数 & \si{\watt\per\square\meter\per\kelvin}, \si{\meter\per\second} & $25$, $8\times10^{-7}$ \\
 $\mathrm{Bi},\mathrm{Bi}_m$ & 热、质 Biot 数 $hR_0/k$、$h_mR_0/D$ & --- & $\valQoneBiotHeat$, $\valQoneBiotMass$ \\
-$\mathrm{Fo},\mathrm{Fo}_m$ & 热、质 Fourier 数 $\alpha t/R_0^2$、$Dt/R_0^2$ & --- & 见第~\ref{subsec:q1analysis} 小节 \\
+$\mathrm{Fo},\mathrm{Fo}_m$ & 热、质 Fourier 数 $\alpha t/R_0^2$、$Dt/R_0^2$ & --- & 第~\ref{subsec:q1analysis} 小节 \\
 $C^\ast$ & 烘干结束的水分浓度阈值 & \si{\kilo\gram\per\kilo\gram} & $0.15$ \\
 $t_{\mathrm{end}}$ & 烘干结束时间 & \si{\second}（报告为 h） & 求解结果 \\
-$n,\Delta\xi$ & 径向控制体个数、无量纲步长 $1/n$ & --- & $n=\valGridNodes-1$ \\
+$n,\Delta\xi$ & 径向控制体个数、无量纲步长 $1/n$ & --- & 节点数 $\valGridNodes$ \\
 $\Delta r$ & 径向网格步长 $R_0/n$ & \si{\centi\meter} & $\valGridDrCm$ \\
 $V_i$ & 第 $i$ 个控制体的无量纲测度 & --- & 式~\eqref{eq:volumes} \\
 $\mathcal F_{i+1/2}$ & 界面 $i+\tfrac12$ 上的无量纲水分通量 & --- & 式~\eqref{eq:flux} \\
@@ -81,3 +82,4 @@ $E_p$ & 弹性 $(\Delta t_{\mathrm{end}}/t_{\mathrm{end}})/(\Delta p/p)$ & --- &
 $L_v,\rho_{s0}$ & 汽化潜热、干物质表观密度 & \si{\joule\per\kilo\gram}, \si{\kilo\gram\per\cubic\meter} & 第~\ref{sec:evaluation} 节 \\
 $T_{\mathrm{wb}},C_{\mathrm{eq}}$ & 烘房湿球温度、平衡含水率 & \si{\celsius}, \si{\kilo\gram\per\kilo\gram} & 第~\ref{sec:evaluation} 节 \\
 \end{longtable}
+\endgroup

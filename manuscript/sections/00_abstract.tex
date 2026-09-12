@@ -1,5 +1,5 @@
 % 摘要：问题背景一句、方法主线、关键结果（数值全部来自 \val 宏）、检验结论与关键词。整页不得溢出。
-本文把药材热风烘干抽象为\textbf{圆柱体内热质耦合扩散与表面对流交换}的初边值问题：由能量与水分守恒律导出一维径向变系数抛物方程组，中心取对称条件，表面取题给参数确定的 Robin 条件 $-k\,\partial_r T=h(T-T_{\mathrm{air}})$ 与 $-D\,\partial_r C=h_m(C-C_{\mathrm{air}})$，烘房状态由附件 1 逐点插值给出。四个问题共用同一套模型与程序，差别只在物性公式、时间范围与边界是否移动。数值上采用顶点型有限体积离散（$r$ 加权控制体、界面状态法计算非线性系数、Robin 通量直接施加于表面半控制体），配合稀疏雅可比的自适应 BDF 积分，并在每个数据折点重启积分器；生产网格 $\Delta r=\valGridDrCm$ cm（$\valGridNodes$ 节点，与 0.1 cm 输出网格重合，无插值），容差 rtol$=\valTimeRtol$、atol$=\valTimeAtol$。
+本文把药材热风烘干抽象为\textbf{圆柱体内热质耦合扩散与表面对流交换}的初边值问题：由能量与水分守恒律导出一维径向变系数抛物方程组，中心取对称条件，表面取题给参数确定的 Robin 条件 $-k\,\partial_r T=h(T-T_{\mathrm{air}})$ 与 $-D\,\partial_r C=h_m(C-C_{\mathrm{air}})$，烘房状态由附件 1 逐点插值给出。四个问题共用同一套模型与程序，差别只在物性公式、时间范围与边界是否移动。数值上采用顶点型有限体积离散（$r$ 加权控制体、界面状态法计算非线性系数、Robin 通量直接施加于表面半控制体），配合稀疏雅可比的自适应 BDF 积分，并在每个数据折点重启积分器；生产网格 $\Delta r=\valGridDrCm$ cm（$\valGridNodes$ 节点，与 0.1 cm 输出网格重合，无插值），容差 rtol$=$\,\sci{\valTimeRtol}、atol$=$\,\sci{\valTimeAtol}。
 
 \textbf{问题一}（预热平衡阶段，附录 2 物性）：1800 s 时中心温度 $\valQoneCentreTempEnd\,^\circ$C、表面 $\valQoneSurfaceTempEnd\,^\circ$C（比烘房低 $\valQoneSurfaceTempLag$ K），中心水分浓度仍为 $\valQoneCentreMoistEnd$ kg/kg、表面降至 $\valQoneSurfaceMoistEnd$ kg/kg，体积平均失水 $\valQoneMoistLossPct\%$。无量纲分析解释了"温度已穿透、水分仅在表层"的格局：热、质傅里叶数分别为 $\valQoneFourierHeat$ 与 $\valQoneFourierMass$，水分扩散长度仅 $\valQoneDiffusionLengthCm$ cm。
 
@@ -9,7 +9,7 @@
 
 \textbf{问题四}（尺寸变化）：按干物质守恒在 Landau 物质坐标下求解收缩域问题（附件 2 的 $R(t)$ 用保单调 PCHIP 插值），烘干时长 $\valQfourDryHours$ h；与同物性、半径固定 2 cm 的 $\valQfourDryHoursFixed$ h 相比缩短为 $1/\valQfourFixedToMovingRatio$，与扩散时间尺度之比 $(R_0/R_\infty)^2=\valQfourRadiusRatioSquared$ 相符，说明收缩通过缩短扩散路径主导了加速。
 
-\textbf{模型检验}（校验器与求解器代码分离）：与常物性 Robin 圆柱贝塞尔级数解的最大误差为 $\valAnalyticErrTemp$（温度）与 $\valAnalyticErrMoist$（水分），观测阶 $\valAnalyticOrderTemp$；六级网格自收敛的观测阶为 $\valConvOrderQthreeMoist$--$\valConvOrderQoneMoist$，烘干时间与最细网格之差 $\valConvDryDiffQthreeMin$ min（问题 3）、$\valConvDryDiffQfourMin$ min（问题 4）；离散水分与能量平衡是半离散系统的精确线性不变量（相对残差 $\sim10^{-15}$）；极值原理与径向单调性全程成立；更严格容差、Radau 与限制最大步长的解相差不超过 $\valTimeRadauDiffMoist$。独立编写的二维轴对称程序在端面绝热时与一维解相差 $\valCrossCheckDiffMoist$，端部效应对烘干时间的影响仅 $\valEndEffectDryDiffPct\%$，支持一维化。灵敏度分析给出烘干时间对烘房温度平台、扩散前因子与收缩幅度的弹性为 $\valElasTplateau$、$\valElasDzero$、$\valElasShrink$，而对换热系数几乎不敏感（$\valElasH$）——烘干由内部扩散而非外部传热控制。模型评价一节进一步以湿球能量上限与平衡含水率驱动力量化了题给模型省略的蒸发潜热与吸附平衡两项机制的影响范围。
+\textbf{模型检验}（校验器与求解器代码分离）：与常物性 Robin 圆柱贝塞尔级数解的最大误差为 \sci{\valAnalyticErrTemp}（温度）与 \sci{\valAnalyticErrMoist}（水分），观测阶 $\valAnalyticOrderTemp$；六级网格自收敛的观测阶为 $\valConvOrderQthreeMoist$--$\valConvOrderQoneMoist$，烘干时间与最细网格之差 $\valConvDryDiffQthreeMin$ min（问题 3）、$\valConvDryDiffQfourMin$ min（问题 4）；离散水分与能量平衡是半离散系统的精确线性不变量（相对残差 $\sim10^{-15}$）；极值原理与径向单调性全程成立；更严格容差、Radau 与限制最大步长的解相差不超过 \sci{\valTimeRadauDiffMoist}。独立编写的二维轴对称程序在端面绝热时与一维解相差 \sci{\valCrossCheckDiffMoist}，端部效应对烘干时间的影响仅 $\valEndEffectDryDiffPct\%$，支持一维化。灵敏度分析给出烘干时间对烘房温度平台、扩散前因子与收缩幅度的弹性为 $\valElasTplateau$、$\valElasDzero$、$\valElasShrink$，而对换热系数几乎不敏感（$\valElasH$）——烘干由内部扩散而非外部传热控制。模型评价一节进一步以湿球能量上限与平衡含水率驱动力量化了题给模型省略的蒸发潜热与吸附平衡两项机制的影响范围。
 
 \par\vspace{0.4em}
 \noindent\textbf{关键词：}热质耦合扩散；对流边界条件；有限体积法；移动边界与 Landau 变换；验证与确认（V\&V）；灵敏度分析

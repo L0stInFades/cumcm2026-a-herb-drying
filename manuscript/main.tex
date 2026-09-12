@@ -17,6 +17,8 @@
 \usetikzlibrary{arrows.meta,positioning,shapes.geometric,calc}
 \usepackage{listings}
 \usepackage{xurl}
+% 参考文献样式：优先 GB/T 7714 数值格式（gbt7714 依赖 natbib，必须在 hyperref 之前载入）
+\IfFileExists{gbt7714.sty}{\usepackage[numbers]{gbt7714}}{\usepackage[numbers,sort&compress]{natbib}}
 \usepackage[colorlinks=true,linkcolor=ink,citecolor=ink,urlcolor=ink,pdfauthor={},pdftitle={药材的烘干问题}]{hyperref}
 
 \setCJKmainfont{Noto Serif CJK SC}[BoldFont={Noto Serif CJK SC Bold}]
@@ -52,6 +54,8 @@
 \newtheorem{assumption}{假设}
 \newtheorem{remark}[theorem]{注}
 \newcommand{\paperfigure}[4][\linewidth]{\begin{figure}[htbp]\centering\includegraphics[width=#1]{#2}\caption{#3}\label{#4}\end{figure}}
+\newcommand{\sci}[1]{\num{#1}}
+\newcommand{\smalltable}[1]{\begingroup\footnotesize\input{#1}\endgroup}
 \newcommand{\dd}{\mathrm{d}}
 \newcommand{\pdv}[2]{\frac{\partial #1}{\partial #2}}
 \newcommand{\pdd}[2]{\frac{\partial^2 #1}{\partial #2^2}}
@@ -90,13 +94,22 @@
 
 \begingroup
 \linespread{1.1}\small
-\IfFileExists{gbt7714.sty}{\bibliographystyle{gbt7714-numerical}}{\bibliographystyle{unsrt}}
+\IfFileExists{gbt7714.sty}{\bibliographystyle{gbt7714-numerical}}{\bibliographystyle{unsrtnat}}
 \bibliography{references}
 \endgroup
 \label{page:body-end}
 
 \clearpage
 \appendix
+\section{补充表格}
+\label{app:tables}
+本附录收录正文引用的大型表格：网格收敛表（表~\ref{tab:convergence}）、与解析级数解的对照表（表~\ref{tab:analytic}）、烘干时间的网格收敛表（表~\ref{tab:convergence-drytime}）以及问题 4 备选写法的结果表（表~\ref{tab:q4-moist-alt}）。
+\smalltable{generated/tables/tab_convergence.tex}
+\smalltable{generated/tables/tab_analytic.tex}
+\smalltable{generated/tables/tab_convergence_drytime.tex}
+\smalltable{generated/tables/tab_q4_moist_alt.tex}
+\FloatBarrier
+
 \section{支撑材料文件清单}
 \label{app:support}
 下表列出支撑材料压缩包内的全部文件（相对路径）及其用途。压缩包内另含 \nolinkurl{MANIFEST.json}，记录每个文件的 SHA-256。
