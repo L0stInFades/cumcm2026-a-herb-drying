@@ -76,6 +76,28 @@
 - 验证：`extension/verification_extension.json`——每个情形的守恒（含通量上限的损失律）、极值原理、单调性与判据一致性检查全部通过。
 - 假设与局限：湿空气解读依赖"水分浓度=含湿量"的读法（DATA_NOTES）；$L_v$、Magnus 公式、ASHRAE 湿球方程为标准常数/公式；$\rho_{s0}$ 取初始值；情形 A 只限制质量通量、不改变能量方程（温度仍按题给模型），因此仍是界定性分析而非完整耦合模型。
 
+## 派生量（derived，MDR-0009）
+
+`derived` 阶段只读取 q1–q4 与 convergence 的已存产物，不做新的模拟，登记论文分析与检验部分引用的派生量：
+长径比与未知量个数（`\valAspectRatio`、`\valSystemSize`）；问题 1 的热/质扩散时间尺度、Fourier 数、扩散长度与刚性比
+（`\valQoneHeatTimeScaleS`、`\valQoneMassTimeScaleH`、`\valQoneFourierHeat`、`\valQoneFourierMass`、
+`\valQoneDiffusionLengthCm`、`\valQoneStiffnessRatio`）；问题 2 中心温度与烘房相差 1 K / 0.5 K 的时刻
+（`\valQtwoCentreWithinOneKelvinHours`、`\valQtwoCentreWithinHalfKelvinHours`）；一维化论证的轴向 Fourier 数
+（`\valFoAxialHeat`、`\valFoAxialMassUpper`）；附录 3/4 扩散系数的量级与比值（`\valDmaxAppendixThree`、
+`\valDtargetAppendixThree`、`\valDsurfaceAtDryQthree`、`\valDratioQthree`、`\valBiotMassAtDryQthree`、
+`\valDmaxAppendixFour`、`\valDtargetAppendixFour`、`\valDratioThreeToFourInit`）；烘干时间的 Richardson 外推与
+生产网格误差（`\valQthreeDryHoursExtrapolated`、`\valQthreeGridErrorMin`、`\valQfourDryHoursExtrapolated`、
+`\valQfourGridErrorMin`）；求解器统计（`\valQthreeNfev`、`\valQthreeNlu`、`\valQthreeSegments`、`\valQfourNfev`）；
+收缩几何比与固定/移动半径的时间比（`\valQfourAreaRatioPct`、`\valQfourRadiusRatioSquared`、
+`\valQfourFixedToMovingRatio`）；数据规模（`\valChamberSamples`、`\valChamberEndHours`、`\valRadiusSamples`、
+`\valRadiusEndHours`）。
+
+## 论文（paper、qa）
+
+最终排版同属 run `20260912-104036-184d092`：165 页（摘要 1 页 + 正文 30 页 + 附录），0 处未定义引用、0 处溢出行、
+字体全嵌入；qa 16/16 通过（含四个结果工作簿的模板契约）。大表（网格收敛、解析解对照、烘干时间收敛、问题 4 备选写法）
+置于附录 A"补充表格"，正文保留题目要求格式的表 2–表 7。
+
 ## 局限
 
 平衡含水率与等温吸附未建模（表面条件为题给线性形式；`extension` 给出 C_eq 的界定分析）；蒸发潜热对能量方程的耦合未计入（`extension` 给出后验诊断与能量限制情形）；各向同性均匀收缩假设；h、h_m 恒定；一维近似（端部效应已量化）；附件 1 之后的烘房条件为平台外推。
