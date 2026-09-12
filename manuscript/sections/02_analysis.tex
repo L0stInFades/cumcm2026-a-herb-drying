@@ -19,9 +19,9 @@
   \item \textbf{三个量级的时间尺度分离。} 以附录 2 的参数计，热扩散时间尺度 $R_0^2/\alpha=\valQoneHeatTimeScaleS$ s，而水分扩散时间尺度 $R_0^2/D(C_0)=\valQoneMassTimeScaleH$ h，两者相差 $\valQoneStiffnessRatio$ 倍；温度与水分又通过 $D(C,T)$ 强耦合。这使方程组\textbf{刚性}：显式格式的稳定步长由温度方程决定（$\Delta t\lesssim\Delta r^2/2\alpha$，在生产网格上约 \SI{3e-3}{\second}），而需要积分的总时长达 $\valQthreeDrySeconds$ \si{\second}。对策是全隐式、变阶变步长的 BDF 方法（第~\ref{subsec:time} 小节）。
   \item \textbf{扩散系数跨越三到四个数量级。} $D\propto\mathrm{e}^{-a/C}$ 在干燥后期急剧变小：以附录 3 计，$D$ 由初始的 \sci{\valDmaxAppendixThree} \si{\square\meter\per\second} 降到烘干结束时表面的 \sci{\valDsurfaceAtDryQthree} \si{\square\meter\per\second}，比值 $\valDratioQthree$（图~\ref{fig:properties}）。表面因此形成低扩散率的"硬壳"，传质 Biot 数 $h_mR_0/D$ 由 $\valQoneBiotMass$ 增至约 $\valBiotMassAtDryQthree$，过程由\textbf{内部扩散}而非外部对流控制——这一判断在灵敏度分析中被定量证实（弹性 $\valElasH$ 对 $h$、$\valElasDzero$ 对 $D_0$）。
   \item \textbf{边界数据是折线与样条。} 附件 1 每 \SI{60}{\second} 一个样本，线性插值后斜率在每个样本处跳变；附件 2 的 PCHIP 插值在每个节点处曲率跳变。多步法跨过折点时的误差不受容差控制（这一现象在初期实验中被观测到，见 MDR-0004 补充），对策是在\textbf{每个数据折点重启积分器}，段内强迫项光滑。
-  \item \textbf{"各处低于 0.15"是一个停止时刻问题。} 判据 $\max_r C(r,t)<0.15$ 定义的时刻不是输出网格上的点。若只在 \SI{60}{\second} 网格上判断，分辨率误差可达 \SI{60}{\second}；对策是把 $g(t)=\max_i C_i(t)-0.15$ 作为积分器的事件函数精确求根，并同时报告 \SI{60}{\second} 网格上的值以与结果文件对照。
+  \item \textbf{"各处低于 0.15"是一个停止时刻问题。} 判据定义的时刻不落在输出网格上。对策是把 $g(t)=\max_i C_i(t)-0.15$ 作为积分器的事件函数精确求根，并同时报告 \SI{60}{\second} 网格上的值以与结果文件对照。
   \item \textbf{问题 4 是移动边界问题。} 计算域随 $R(t)$ 收缩。若把附录方程视为实验室坐标下的方程（Eulerian），被边界扫过的物质离开计算域，水分总量不守恒；本文以干物质守恒的物质坐标（Lagrangian）为主模型，两者的差异作为解释不确定性的一部分定量给出（第~\ref{subsec:q4model} 小节）。
-  \item \textbf{四位小数的精度要求。} 表格与结果文件保留四位小数，要求离散误差远小于 $5\times10^{-5}$。对策是把输出点取在网格节点上（$\Delta r=0.1/2^k$ \si{\centi\meter}），用收敛表确定 $k$，并用解析级数解独立确认误差量级（第~\ref{sec:validation} 节）。
+  \item \textbf{四位小数的精度要求。} 离散误差必须远小于 $5\times10^{-5}$。对策是把输出点取在网格节点上（$\Delta r=0.1/2^k$ \si{\centi\meter}），用收敛表确定 $k$，并用解析级数解独立确认误差量级（第~\ref{sec:validation} 节）。
 \end{enumerate}
 
 \subsection{技术路线}
