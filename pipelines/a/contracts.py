@@ -26,28 +26,49 @@ INPUT_CONTRACTS: dict[str, FrameContract] = {
 }
 
 _RADIAL = 22  # A1 label + 21 distances 0.0 … 2.0 (step 0.1 cm)
+_HEADER = [0.0, 0.5, 1.0, 1.5, 2.0]  # checked positions of the first row (every 0.5 cm of the 0.1 cm grid)
+WHOLE_PROCESS_FILE = "result2_全过程.xlsx"  # supplementary deliverable, whole process at 60 s (MDR-0005)
+
+
+def _sheet(name: str, step: float, **kw: object) -> SheetContract:
+    """Result sheet contract: header positions, time-column step and the numeric region."""
+    return SheetContract(
+        name,
+        header_len=kw.pop("header_len", _RADIAL),  # type: ignore[arg-type]
+        numeric_from_col=0,
+        first_col_step=step,
+        header_values=tuple(_HEADER),
+        header_value_columns=(0, 5, 10, 15, 20),
+        **kw,  # type: ignore[arg-type]
+    )
+
 
 RESULT_CONTRACTS: list[WorkbookContract] = [
     WorkbookContract(
         "result1.xlsx",
         "result1.xlsx",
         (
-            SheetContract("温度", min_rows=1800, max_rows=1801, header_len=_RADIAL, numeric_from_col=0),
-            SheetContract("水分浓度", min_rows=1800, max_rows=1801, header_len=_RADIAL, numeric_from_col=0),
+            _sheet("温度", 1.0, min_rows=1800, max_rows=1801),
+            _sheet("水分浓度", 1.0, min_rows=1800, max_rows=1801),
         ),
     ),
     WorkbookContract(
         "result2.xlsx",
         "result2.xlsx",
         (
-            SheetContract("温度", min_rows=10800, header_len=_RADIAL, numeric_from_col=0),
-            SheetContract("水分浓度", min_rows=10800, header_len=_RADIAL, numeric_from_col=0),
+            _sheet("温度", 1.0, min_rows=10800, max_rows=10801),
+            _sheet("水分浓度", 1.0, min_rows=10800, max_rows=10801),
         ),
     ),
+    WorkbookContract("result3.xlsx", "result3.xlsx", (_sheet("Sheet1", 60.0, min_rows=60),)),
     WorkbookContract(
-        "result3.xlsx", "result3.xlsx", (SheetContract("Sheet1", min_rows=60, header_len=_RADIAL, numeric_from_col=0),)
+        "result4.xlsx",
+        "result4.xlsx",
+        (_sheet("Sheet1", 60.0, min_rows=60, header_len=_RADIAL + 1, allow_blank=True),),
     ),
     WorkbookContract(
-        "result4.xlsx", "result4.xlsx", (SheetContract("Sheet1", min_rows=60, numeric_from_col=0, allow_blank=True),)
+        WHOLE_PROCESS_FILE,
+        "result2.xlsx",
+        (_sheet("温度", 60.0, min_rows=60), _sheet("水分浓度", 60.0, min_rows=60)),
     ),
 ]

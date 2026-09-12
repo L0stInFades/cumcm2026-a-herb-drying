@@ -22,10 +22,21 @@ import numpy as np
 from scipy import sparse
 from scipy.integrate import solve_ivp
 
-from pipelines.a.physics import C_INIT, C_TARGET, T_INIT, Chamber, FluxCap, Properties, Radius
+from pipelines.a.physics import (
+    C_INIT,
+    C_TARGET,
+    T_INIT,
+    Chamber,
+    FluxCap,
+    Properties,
+    Radius,
+    dry_solid_density,
+    storage_coefficient,
+)
 
 FACE_SCHEMES = ("midpoint", "arithmetic", "harmonic")
 FORMULATIONS = ("lagrangian", "eulerian")
+MASS_FORMS = ("drybasis", "conservative")
 
 
 @dataclass(frozen=True)
@@ -57,6 +68,7 @@ class ProblemSpec:
     t_init: float = T_INIT
     c_init: float = C_INIT
     flux_cap: FluxCap | None = None  # energy-limited evaporation (model-evaluation extension, MDR-0008)
+    mass_form: str = "drybasis"  # moisture conservation form (MDR-0010): drybasis | conservative
 
     def describe(self) -> dict[str, Any]:
         return {
@@ -65,6 +77,7 @@ class ProblemSpec:
             "radius": self.radius.describe(),
             "formulation": self.formulation,
             "face_scheme": self.face_scheme,
+            "mass_form": self.mass_form,
             "t_init": self.t_init,
             "c_init": self.c_init,
             "flux_cap": None if self.flux_cap is None else self.flux_cap.describe(),
@@ -72,10 +85,12 @@ class ProblemSpec:
 
     def surface_moisture_loss(self, t: Any, c_surface: Any, c_air: Any) -> Any:
         """Boundary loss law hm (C_s - C_air) in (kg/kg) m/s, bounded by the energy cap when one is set."""
-        loss = self.props.hm * (np.asarray(c_surface, dtype=float) - np.asarray(c_air, dtype=float))
+        cs = np.asarray(c_surface, dtype=float)
+        loss = self.props.hm * (cs - np.asarray(c_air, dtype=float))
         if self.flux_cap is None:
             return loss
-        return np.minimum(loss, np.asarray(self.flux_cap.value(t), dtype=float) / self.flux_cap.rho_s)
+        rho_s = dry_solid_density(self.props, cs) if self.flux_cap.local_rho_s else self.flux_cap.rho_s
+        return np.minimum(loss, np.asarray(self.flux_cap.value(t), dtype=float) / rho_s)
 
 
 @dataclass
@@ -112,7 +127,9 @@ class RadialSystem:
 
     The two trailing states accumulate the boundary losses hm (C_s - C_air)/R and h (T_s - T_air)/R so that
     the discrete balances sum_i vol_i C_i + Q_m = const (and its thermal analogue for constant properties)
-    are linear invariants of the ODE system, which BDF/Radau preserve to integrator accuracy.
+    are linear invariants of the ODE system, which BDF/Radau preserve to integrator accuracy. In the
+    ``conservative`` moisture form (MDR-0010) the accumulated loss carries the surface dry-matter density,
+    so that the invariant is the rho_s-weighted inventory sum_i vol_i rho_s(C_i) C_i + Q_m.
     """
 
     def __init__(self, spec: ProblemSpec, grid: Grid) -> None:
@@ -120,10 +137,13 @@ class RadialSystem:
             raise ValueError(f"face_scheme must be one of {FACE_SCHEMES}")
         if spec.formulation not in FORMULATIONS:
             raise ValueError(f"formulation must be one of {FORMULATIONS}")
+        if spec.mass_form not in MASS_FORMS:
+            raise ValueError(f"mass_form must be one of {MASS_FORMS}")
         self.spec = spec
         self.grid = grid
         self.n1 = grid.n + 1
         self.convective = spec.formulation == "eulerian" and not spec.radius.is_constant
+        self.conservative = spec.mass_form == "conservative"
 
     def face_coefficients(self, temp: np.ndarray, moist: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         props = self.spec.props
@@ -149,6 +169,8 @@ class RadialSystem:
         t_air = float(self.spec.chamber.air_temperature(t))
         c_air = float(self.spec.chamber.air_humidity(t))
         d_face, k_face = self.face_coefficients(temp, moist)
+        if self.conservative:  # rho_s-weighted flux and storage (MDR-0010)
+            d_face = d_face * dry_solid_density(props, 0.5 * (moist[:-1] + moist[1:]))
         flux_c = g.xi_face * d_face * (moist[1:] - moist[:-1]) / g.dxi  # xi D dC/dxi at interior faces
         flux_t = g.xi_face * k_face * (temp[1:] - temp[:-1]) / g.dxi
         div_c = np.empty(n1)
@@ -156,11 +178,13 @@ class RadialSystem:
         div_c[:-1] = flux_c
         div_t[:-1] = flux_t
         loss_c = float(self.spec.surface_moisture_loss(t, moist[-1], c_air))  # hm (C_s - C_air), capped if set
-        div_c[-1] = -radius * loss_c  # outer face: xi D dC/dxi = R (-hm (C_s - C_air))
+        rho_s_surface = float(dry_solid_density(props, moist[-1])) if self.conservative else 1.0
+        div_c[-1] = -radius * rho_s_surface * loss_c  # outer face: xi D dC/dxi = R (-hm (C_s - C_air))
         div_t[-1] = -radius * props.h * (temp[-1] - t_air)
         div_c[1:] -= flux_c
         div_t[1:] -= flux_t
-        dc = div_c / (r2 * g.vol)
+        storage = storage_coefficient(props, moist) if self.conservative else 1.0
+        dc = div_c / (r2 * g.vol * storage)
         dt = div_t / (r2 * g.vol * props.rho(moist) * props.cp(moist))
         if self.convective:
             rate = float(self.spec.radius.rate(t)) / radius
@@ -174,7 +198,7 @@ class RadialSystem:
             grad_t[-1] = (3.0 * temp[-1] - 4.0 * temp[-2] + temp[-3]) / (2.0 * g.dxi)
             dc = dc + g.xi * rate * grad_c
             dt = dt + g.xi * rate * grad_t
-        losses = [loss_c / radius, props.h * (temp[-1] - t_air) / radius]
+        losses = [rho_s_surface * loss_c / radius, props.h * (temp[-1] - t_air) / radius]
         return np.concatenate([dt, dc, losses])
 
     def jacobian_sparsity(self) -> sparse.csr_matrix:
@@ -332,9 +356,17 @@ def solve_until_dry(
     *,
     horizon: float = 5 * 86400.0,
     max_horizon: float = 30 * 86400.0,
+    display_decimals: int | None = 4,
     **kwargs: Any,
 ) -> Solution:
-    """Integrate until max_i C_i < C_TARGET, keep output rows up to the first ``dt_out`` multiple after it."""
+    """Integrate until max_i C_i < C_TARGET, keeping output rows a little past the drying instant.
+
+    The last kept row is the first ``dt_out`` multiple at or after ``t_dry`` whose values, rounded to
+    ``display_decimals`` places as the problem requires, are all strictly below the target; with
+    ``display_decimals=None`` it is simply the first multiple at or after ``t_dry``. Because the criterion
+    holds with equality at ``t_dry`` itself, the unrounded value on the first multiple after it still rounds
+    to 0.1500, which would read as "criterion not met" in the delivered workbook (MDR-0005).
+    """
     while True:
         t_out = np.arange(0.0, horizon + 0.5 * dt_out, dt_out)
         sol = solve(spec, n, t_out, detect_dry=True, **kwargs)
@@ -344,6 +376,10 @@ def solve_until_dry(
         if horizon > max_horizon:
             raise RuntimeError("drying criterion not met within the maximum horizon")
     last = math.ceil(sol.t_dry / dt_out - 1e-9)
+    if display_decimals is not None:
+        shown = np.round(sol.moist.max(axis=1), display_decimals)
+        while last + 1 < len(sol.t) and shown[last] >= C_TARGET:
+            last += 1
     keep = slice(0, last + 1)
     sol.t = sol.t[keep]
     sol.temp = sol.temp[keep]
@@ -354,7 +390,8 @@ def solve_until_dry(
     if sol.cum_moist_loss is not None and sol.cum_heat_loss is not None:
         sol.cum_moist_loss = sol.cum_moist_loss[keep]
         sol.cum_heat_loss = sol.cum_heat_loss[keep]
-    sol.stats["t_dry_grid"] = float(last * dt_out)
+    sol.stats["t_dry_grid"] = float(math.ceil(sol.t_dry / dt_out - 1e-9) * dt_out)
+    sol.stats["t_last_row"] = float(sol.t[-1])
     return sol
 
 

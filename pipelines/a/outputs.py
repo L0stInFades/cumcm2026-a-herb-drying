@@ -14,6 +14,7 @@ from forge import xlsx
 from forge.context import StageContext
 from forge.runner import stage
 from pipelines.a.common import COLS, R_OUT_CM, R_TABLE_CM
+from pipelines.a.contracts import WHOLE_PROCESS_FILE
 
 HOUR = 3600.0
 
@@ -49,6 +50,18 @@ def results(ctx: StageContext) -> dict[str, Any]:
         ctx.templates / "result4.xlsx",
         ctx.out("result4.xlsx"),
         {"Sheet1": (header4, _rows(moist4, 60.0, [*COLS, "surface"]))},
+    )
+    # supplementary deliverable (MDR-0005): the whole drying process, both fields, at the 60 s resolution the
+    # problem itself uses for the whole process. result2.xlsx keeps the 1 s resolution over the 3 h of tables 3-4;
+    # the same file at 1 s over the whole process would be 2.1e5 rows and ~57 MB (measured), beyond the
+    # submission size budget, so the whole-process fields are delivered at 60 s instead.
+    temp3 = pd.read_parquet(ctx.dep("q3") / "profiles_temp.parquet")
+    sheets_full = {
+        "温度": (header, _rows(temp3, 60.0, COLS)),
+        "水分浓度": (header, _rows(moist3, 60.0, COLS)),
+    }
+    report[WHOLE_PROCESS_FILE] = xlsx.write_result(
+        ctx.templates / "result2.xlsx", ctx.out(WHOLE_PROCESS_FILE), sheets_full
     )
     ctx.write_json("results_report.json", report)
     return {name: info["sheets"] for name, info in report.items()}
@@ -204,30 +217,59 @@ def tables(ctx: StageContext) -> dict[str, Any]:
     ]
     for key, label in keys:
         for row in conv["grid"][key]:
-            rows_c.append([label, row["k"], row["dr_cm"], row["max_abs_error"], row.get("observed_order")])
+            rows_c.append(
+                [
+                    label,
+                    row["k"],
+                    row["dr_cm"],
+                    row["max_abs_error"],
+                    row.get("observed_order"),
+                    row.get("observed_order_triplet"),
+                ]
+            )
     _write_table(
         ctx,
         "tab_convergence",
-        f"网格收敛：以 $\\Delta r = 0.1/2^{{{conv['levels'] - 1}}}$ cm 为参照的最大绝对误差与观测阶数",
+        f"网格收敛：以 $\\Delta r = 0.1/2^{{{conv['levels'] - 1}}}$ cm 为参照的最大绝对误差与两种观测阶",
         "tab:convergence",
-        ["量", "$k$", "$\\Delta r$/cm", "最大误差", "观测阶"],
-        [[a, b, c, f"{d:.2e}", "--" if e is None else f"{e:.2f}"] for a, b, c, d, e in rows_c],
-        digits=[0, 0, 4, 0, 0],
-        align="llrrr",
+        ["量", "$k$", "$\\Delta r$/cm", "最大误差", "自收敛阶", "三网格阶"],
+        [
+            [a, b, c, f"{d:.2e}", "--" if e is None else f"{e:.2f}", "--" if f is None else f"{f:.2f}"]
+            for a, b, c, d, e, f in rows_c
+        ],
+        digits=[0, 0, 4, 0, 0, 0],
+        align="llrrrr",
+        note="“自收敛阶”$p_k=\\log_2(e_k/e_{k+1})$ 以最细网格为参照，最后一对网格被系统性抬高 "
+        "$\\log_2[(1-4^{-(m-k)})/(1-4^{-(m-k-1)})]$（二阶格式在 $m-k=2$ 时为 2.32）；"
+        "“三网格阶”$p_k=\\log_2(\\lVert u_k-u_{k+1}\\rVert_\\infty/\\lVert u_{k+1}-u_{k+2}\\rVert_\\infty)$ 不需要参照解，无此偏置（MDR-0011）。",
     )
     rows_d = []
     for prob, label in (("q3", "问题 3"), ("q4", "问题 4")):
         for row in conv["grid"][f"{prob}_t_dry"]:
-            rows_d.append([label, row["k"], row["dr_cm"], row["t_dry_h"], row.get("diff_to_finest_min")])
+            rows_d.append(
+                [
+                    label,
+                    row["k"],
+                    row["dr_cm"],
+                    row["t_dry_h"],
+                    row.get("diff_to_finest_min"),
+                    row.get("observed_order_triplet"),
+                ]
+            )
     _write_table(
         ctx,
         "tab_convergence_drytime",
-        "烘干时间随网格加密的收敛（与最细网格之差，单位 min）",
+        "烘干时间随网格加密的收敛（与最细网格之差，单位 min）与三网格观测阶",
         "tab:convergence-drytime",
-        ["问题", "$k$", "$\\Delta r$/cm", "$t_{\\mathrm{end}}$/h", "与最细网格之差/min"],
-        [[a, b, c, f"{d:.4f}", "--" if e is None else f"{e:.3f}"] for a, b, c, d, e in rows_d],
-        digits=[0, 0, 4, 0, 0],
-        align="llrrr",
+        ["问题", "$k$", "$\\Delta r$/cm", "$t_{\\mathrm{end}}$/h", "与最细网格之差/min", "三网格阶"],
+        [
+            [a, b, c, f"{d:.4f}", "--" if e is None else f"{e:.3f}", "--" if f is None else f"{f:.2f}"]
+            for a, b, c, d, e, f in rows_d
+        ],
+        digits=[0, 0, 4, 0, 0, 0],
+        align="llrrrr",
+        note="$t_{\\mathrm{end}}$ 的收敛阶低于场量本身：判据时刻随网格移动，误差同时包含解误差与穿零时刻的移动。"
+        "Richardson 外推按该观测阶进行（正文第~\\ref{subsec:gridconv} 小节）。",
     )
     rows_t = []
     for row in conv["time"].values():
@@ -258,10 +300,12 @@ def tables(ctx: StageContext) -> dict[str, Any]:
         v = _load(ctx.dep(prob) / f"verification_{prob}.json")
         mb = v["moisture_balance"]
         ex = v["extremum"]
+        sampled = mb.get("sampled", {}).get("max_relative_residual")
         checks.append(
             [
                 f"问题 {prob[1]}",
                 f"{mb['max_relative_residual']:.2e}",
+                "--" if sampled is None else f"{sampled:.2e}",
                 "是" if ex["moist_within_bounds"] and ex["temp_within_bounds"] else "否",
                 "是" if ex["moist_monotone_in_r"] else "否",
                 "是" if v["passed"] else "否",
@@ -270,15 +314,22 @@ def tables(ctx: StageContext) -> dict[str, Any]:
     _write_table(
         ctx,
         "tab_verification",
-        "各问题的独立校验：水分守恒相对残差、极值原理、沿径向单调性、综合结论",
+        "各问题的独立校验：水分守恒的两种相对残差、极值原理、沿径向单调性、综合结论",
         "tab:verification",
-        ["问题", "守恒残差", "极值原理", "单调性", "通过"],
+        ["问题", "不变量残差", "重采样残差", "极值原理", "单调性", "通过"],
         checks,
-        digits=[0, 0, 0, 0, 0],
-        align="lrccc",
+        digits=[0, 0, 0, 0, 0, 0],
+        align="lrrccc",
+        note="“不变量残差”比较离散存量与积分器内累积的边界通量（半离散系统的精确线性不变量，检验格式本身）；"
+        "“重采样残差”由输出样本按梯形法独立重算通量积分，受输出间隔的梯形误差限制，检验的是实际通量。",
     )
     rows_a = []
-    for field, label in (("temp", "温度（Bi=%.3f）"), ("moist", "水分（Bi$_m$=%.3f）")):
+    analytic_keys = [
+        ("temp", "常环境温度（Bi=%.3f）"),
+        ("moist", "常环境水分（Bi$_m$=%.3f）"),
+        ("duhamel", "问题 1 温度、Duhamel（Bi=%.3f）"),
+    ]
+    for field, label in analytic_keys:
         a = ver["analytic"][field]
         for row in a["levels"]:
             rows_a.append(
@@ -293,13 +344,49 @@ def tables(ctx: StageContext) -> dict[str, Any]:
     _write_table(
         ctx,
         "tab_analytic",
-        "与常物性 Robin 圆柱贝塞尔级数解的最大绝对误差及观测阶数",
+        "与 Robin 圆柱级数解的最大绝对误差及观测阶数（前两组为人为构造的常环境算例，第三组为问题 1 本身）",
         "tab:analytic",
         ["量", "$k$", "$\\Delta r$/cm", "最大误差", "观测阶"],
         rows_a,
         digits=[0, 0, 4, 0, 0],
         align="llrrr",
+        note="第三组把附件 1 的分段线性烘房温度用 Duhamel 叠加代入级数解，因而是问题 1 温度场的\\textbf{真解}对照，"
+        "而非常环境算例。",
     )
+
+    # output-grid (result-file resolution) refinement study
+    og = conv.get("output_grid", {})
+    og_names = {
+        "q1_temp": "问题 1 温度",
+        "q1_moist": "问题 1 水分",
+        "q2_temp": "问题 2 温度",
+        "q2_moist": "问题 2 水分",
+    }
+    rows_og = [
+        [
+            og_names.get(key, key),
+            f"{row['cells_total']:d}",
+            f"{row['production_error']:.2e}",
+            f"{row['max_at_t_s']:g} s / {row['max_at_r_cm']:g} cm",
+            f"{row['observed_order']:.2f}",
+            f"{row['cells_differing']:d}（{100.0 * row['cells_differing'] / row['cells_total']:.2f}\\%）",
+            f"{row['last_differing_t_s']:g}",
+        ]
+        for key, row in og.items()
+    ]
+    if rows_og:
+        _write_table(
+            ctx,
+            "tab_outputgrid",
+            "结果文件完整输出网格（每 1 s $\\times$ 每 0.1 cm）上的离散误差与四位小数的可靠性",
+            "tab:outputgrid",
+            ["量", "单元数", "最大误差", "误差最大处", "三网格阶", "第四位小数不同的单元", "最后一处/s"],
+            rows_og,
+            digits=[0, 0, 0, 0, 0, 0, 0],
+            align="lrrlrrr",
+            note="误差相对由 $k=6,7$ 两级网格作 Richardson 外推得到的极限；"
+            "“最后一处”之后的全部输出时刻上，交付值与外推极限的四位小数完全一致。",
+        )
 
     # sensitivity
     sens = _load(ctx.dep("sensitivity") / "sensitivity.json")
@@ -337,6 +424,7 @@ def tables(ctx: StageContext) -> dict[str, Any]:
         "q4_lagrangian": "问题 4 拉格朗日写法",
         "q4_fixed_radius": "问题 4 物性、半径固定 2 cm",
         "q3_mean_criterion": "以平均含水率 $<0.15$ 为判据",
+        "mass_conservative": "守恒型水分方程 $\\partial_t(\\rho_sC)=\\nabla\\!\\cdot\\!(\\rho_sD\\nabla C)$",
     }
     rows_alt = [[alt_names.get(r["case"], r["case"]), r["t_dry_h"], r["diff_pct"]] for r in sens["alternatives"]]
     _write_table(
@@ -353,7 +441,10 @@ def tables(ctx: StageContext) -> dict[str, Any]:
     ext = _load(ctx.dep("extension") / "extension.json")
     rows_e: list[list[Any]] = [["题给模型（主结果）", "--", ext["base_t_dry_h"], 0.0]]
     for row in ext["variants"]:
-        if row["case"] == "cap":
+        if row["case"] == "caplocal":
+            name = "蒸发通量受能量限制（换算用局部 $\\rho_s(C_s)$）"
+            param = f"$j_{{\\max}}={row['cap_plateau_kg_m2_h']:.3f}$ kg/(m$^2\\cdot$h)"
+        elif row["case"] == "cap":
             name = f"蒸发通量受能量限制（湿球极限 $\\times{row['value']:g}$）"
             param = f"$j_{{\\max}}={row['cap_plateau_kg_m2_h']:.3f}$ kg/(m$^2\\cdot$h)"
         else:

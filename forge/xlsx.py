@@ -115,6 +115,9 @@ class SheetContract:
     allow_blank: bool = False  # blank numeric cells permitted (e.g. moving-boundary tables)
     decimals: int | None = 4  # numeric cells must carry at most this many decimals
     text_columns: tuple[int, ...] = ()  # 0-based columns that must be non-empty text
+    first_col_step: float | None = None  # required constant step of the first (time) column
+    header_values: tuple[float, ...] = ()  # expected header values at ``header_value_columns``
+    header_value_columns: tuple[int, ...] = ()  # 0-based header positions carrying ``header_values``
 
 
 @dataclass(frozen=True)
@@ -153,13 +156,20 @@ def check_workbook(path: Path, contract: WorkbookContract, template: Path) -> di
             errors.append(f"{sc.name}: A1 {header[0]!r} differs from template {tpl[0]!r}")
         if sc.header_len is not None and len(header) != sc.header_len:
             errors.append(f"{sc.name}: header has {len(header)} cells, expected {sc.header_len}")
+        for want, col in zip(sc.header_values, sc.header_value_columns):
+            got = header[col] if col < len(header) else None
+            if not isinstance(got, int | float) or abs(float(got) - want) > 1e-9:
+                errors.append(f"{sc.name}: header cell {col + 1} is {got!r}, expected {want}")
         n = 0
         bad_numeric = blank = bad_decimals = bad_text = 0
+        first_col: list[float] = []
         for row in rows:
             values = list(row)
             if all(v is None or (isinstance(v, str) and not v.strip()) for v in values):
                 continue
             n += 1
+            if sc.first_col_step is not None and values and isinstance(values[0], int | float):
+                first_col.append(float(values[0]))
             if sc.numeric_from_col is not None:
                 for v in values[sc.numeric_from_col : len(header) or None]:
                     if v is None or (isinstance(v, str) and not v.strip()):
@@ -172,6 +182,16 @@ def check_workbook(path: Path, contract: WorkbookContract, template: Path) -> di
                 v = values[j] if j < len(values) else None
                 if v is None or not str(v).strip():
                     bad_text += 1
+        if sc.first_col_step is not None:
+            if len(first_col) != n:
+                errors.append(f"{sc.name}: {n - len(first_col)} rows without a numeric time value")
+            else:
+                steps = [b - a for a, b in zip(first_col, first_col[1:])]
+                off = [s for s in steps if abs(s - sc.first_col_step) > 1e-9]
+                if off:
+                    errors.append(f"{sc.name}: {len(off)} time steps differ from {sc.first_col_step} (e.g. {off[0]})")
+                if first_col and abs(first_col[0] - sc.first_col_step) > 1e-9:
+                    errors.append(f"{sc.name}: first time value {first_col[0]}, expected {sc.first_col_step}")
         if n < sc.min_rows:
             errors.append(f"{sc.name}: {n} data rows < {sc.min_rows}")
         if sc.max_rows is not None and n > sc.max_rows:
@@ -188,6 +208,7 @@ def check_workbook(path: Path, contract: WorkbookContract, template: Path) -> di
             "rows": n,
             "header": [str(h) for h in header[:6]] + (["…"] if len(header) > 6 else []),
             "blank": blank,
+            "first_col": [first_col[0], first_col[-1]] if first_col else None,
         }
     wb.close()
     return {"file": contract.file, "ok": not errors, "errors": errors, "sheets": report}

@@ -106,7 +106,7 @@ def figures(ctx: StageContext) -> dict[str, Any]:
     # 2. property laws ------------------------------------------------------------------------------
     fig, axes = plotting.new_figure(6.3, 2.9, ncols=2)
     c = np.linspace(0.02, 2.6, 400)
-    axes[0].plot(c, APPENDIX2.diffusivity(c, np.full_like(c, 28.0)), color=CAT[0], label="附录 2")
+    axes[0].plot(c, APPENDIX2.diffusivity(c, np.full_like(c, 28.0)), color=CAT[0], label="附录 2（不含温度项）")
     for j, (props, name) in enumerate(((APPENDIX3, "附录 3"), (APPENDIX4, "附录 4"))):
         for temp, ls in ((28.0, "--"), (50.0, "-")):
             axes[0].plot(
@@ -115,11 +115,15 @@ def figures(ctx: StageContext) -> dict[str, Any]:
     axes[0].set_yscale("log")
     axes[0].set_xlabel("水分浓度 $C$ / (kg/kg)")
     axes[0].set_ylabel("扩散系数 $D$ / (m$^2$/s)")
+    axes[0].set_ylim(1e-13, 3e-8)  # the range actually visited during drying (C >= 0.05)
     axes[0].axvline(C_TARGET, color=MUTED, ls=":", lw=1)
-    axes[0].legend(frameon=False, fontsize=7)
+    axes[0].annotate(
+        f"$C^*={C_TARGET:g}$", xy=(C_TARGET, 3e-13), xytext=(C_TARGET + 0.12, 3e-13), fontsize=7, color=MUTED
+    )
+    axes[0].legend(frameon=False, fontsize=7, loc="lower right")
+    axes[1].axhline(APPENDIX2.k0 / (APPENDIX2.rho0 * APPENDIX2.cp0) * 1e7, color=CAT[0], label="附录 2")
     for j, (props, name) in enumerate(((APPENDIX3, "附录 3"), (APPENDIX4, "附录 4"))):
         axes[1].plot(c, props.k(c) / (props.rho(c) * props.cp(c)) * 1e7, color=CAT[j + 1], label=name)
-    axes[1].axhline(APPENDIX2.k0 / (APPENDIX2.rho0 * APPENDIX2.cp0) * 1e7, color=CAT[0], label="附录 2")
     axes[1].set_xlabel("水分浓度 $C$ / (kg/kg)")
     axes[1].set_ylabel(r"热扩散率 $\alpha$ / ($10^{-7}$ m$^2$/s)")
     axes[1].legend(frameon=False, fontsize=7)
@@ -379,8 +383,8 @@ def figures(ctx: StageContext) -> dict[str, Any]:
         )
     ax.axvline(0, color=INK, lw=0.8)
     ax.set_xlabel("烘干时间的弹性 $E$")
-    lim = max(abs(v) for v in vals) * 1.35 + 0.05
-    ax.set_xlim(-lim, lim)
+    span = max(abs(v) for v in vals)
+    ax.set_xlim(min(vals) - 0.22 * span - 0.05, max(max(vals), 0.0) + 0.22 * span + 0.05)
     ax.invert_yaxis()
     _finish(ctx, fig, "fig_sensitivity", index, "烘干时间对各参数的弹性（±10% 中心差分）：正值表示参数增大使烘干变慢")
 

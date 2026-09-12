@@ -22,6 +22,7 @@ from forge.runner import stage
 from pipelines.a.common import build_spec, production_n, spec_to_recipe, time_options
 from pipelines.a.physics import (
     C_INIT,
+    C_TARGET,
     R0,
     FluxCap,
     dry_solid_density,
@@ -182,6 +183,18 @@ def extension(ctx: StageContext) -> dict[str, Any]:
                 "checks": True,
             }
         )
+    local_spec = replace(base, flux_cap=replace(cap, scale=1.0, local_rho_s=True))
+    jobs.append(
+        {
+            "label": "caplocal:1.0",
+            "recipe": spec_to_recipe(local_spec),
+            "n": n,
+            "opts": opts,
+            "mode": "dry",
+            "horizon": horizon,
+            "checks": True,
+        }
+    )
     for c in c_eq_values:
         spec = replace(base, chamber=replace(chamber, hum=np.full_like(chamber.hum, c), hum_plateau=c, hum_scale=1.0))
         jobs.append(
@@ -217,11 +230,12 @@ def extension(ctx: StageContext) -> dict[str, Any]:
             "nfev": int(res["stats"]["nfev"]),
         }
         tt = np.asarray(res["mean_moist_t"], dtype=float)
-        if kind == "cap":
+        if kind in ("cap", "caplocal"):
             scaled = replace(cap, scale=value)
             cs = np.asarray(res["surface_moist"], dtype=float)
             ca = np.asarray(res["air_hum"], dtype=float)
-            active = props.hm * (cs - ca) > np.asarray(scaled.value(tt), dtype=float) / rho_s0 * (1.0 + 1e-9)
+            rho_s = np.asarray(dry_solid_density(props, cs), dtype=float) if kind == "caplocal" else rho_s0
+            active = props.hm * (cs - ca) > np.asarray(scaled.value(tt), dtype=float) / rho_s * (1.0 + 1e-9)
             row["cap_release_h"] = float(tt[np.where(active)[0][-1]] / HOUR) if active.any() else 0.0
             row["cap_plateau_kg_m2_s"] = cap.plateau * value
             row["cap_plateau_kg_m2_h"] = cap.plateau * value * HOUR
@@ -258,6 +272,10 @@ def extension(ctx: StageContext) -> dict[str, Any]:
     ctx.number("ExtFluxCapPlateau", cap.plateau, ".2e")
     ctx.number("ExtFluxCapPlateauKgPerHour", cap.plateau * HOUR, ".3f")
     ctx.number("ExtFluxCapInit", float(cap.cap[0]), ".2e")
+    ctx.number("ExtFluxCapInitKgPerHour", float(cap.cap[0]) * HOUR, ".3f")
+    ctx.number("ExtModelFluxInitKgPerHour", d["j_w_initial"] * HOUR, ".2f")
+    ctx.number("ExtFluxRatioPlateau", d["j_w_initial"] / cap.plateau, ".1f")
+    ctx.number("ExtDrySolidDensityTarget", float(dry_solid_density(props, np.array(C_TARGET))), ".0f")
     ctx.number("ExtModelFluxInit", d["j_w_initial"], ".2e")
     ctx.number("ExtFluxRatioInit", d["j_w_initial"] / float(cap.cap[0]), ".0f")
     ctx.number("ExtLatentDeltaTPeak", d["dt_lat_peak_K"], ".0f")
@@ -274,6 +292,10 @@ def extension(ctx: StageContext) -> dict[str, Any]:
     ctx.number("ExtWaterRemovedKg", d["water_removed_kg_per_m"], ".3f")
     ctx.number("ExtEnergyBoundHours", t_bound / HOUR, ".1f")
     ctx.number("ExtEnergyBoundPct", 100.0 * (t_bound / t3 - 1.0), ".1f")
+    for row in [v for v in variants if v["case"] == "caplocal"]:
+        ctx.number("ExtCapLocalHours", row["t_dry_h"], ".2f")
+        ctx.number("ExtCapLocalPct", row["diff_pct"], ".1f")
+        ctx.number("ExtCapLocalReleaseHours", row["cap_release_h"], ".1f")
     cap_rows = [v for v in variants if v["case"] == "cap"]
     ceq_rows = [v for v in variants if v["case"] == "ceq"]
     for i, row in enumerate(cap_rows):

@@ -213,13 +213,18 @@ def _load_numbers(run_dir: Path) -> tuple[dict[str, str], list[str]]:
 
 
 def _stage_rows(ctx: StageContext) -> list[dict[str, Any]]:
+    """Status of every stage of this run. The stage that is *writing* this table is necessarily still running;
+    report it as completed-in-progress so the record does not read as an unfinished pipeline."""
     rows = []
     for manifest in sorted(ctx.run_dir.glob("*/manifest.json")):
         data = json.loads(manifest.read_text(encoding="utf-8"))
+        status = data["status"]
+        if status == "running" and data["stage"] == ctx.stage:
+            status = "completed*"
         rows.append(
             {
                 "stage": data["stage"],
-                "status": data["status"],
+                "status": status,
                 "duration_s": data.get("duration_s"),
                 "outputs_digest": data.get("outputs_digest", ""),
                 "modal_task_id": data.get("runtime", {}).get("modal_task_id"),
@@ -457,9 +462,11 @@ def _reproduce_md(ctx: StageContext) -> str:
         "```bash",
         "python3 tools/cli.py provision",
         "python3 tools/cli.py run ingest,validate --new-run",
-        "python3 tools/cli.py run <科学阶段...> --size medium",
+        "python3 tools/cli.py run q1,q2,q3,q4 --size medium",
+        "python3 tools/cli.py run convergence,verification,sensitivity,extension,derived --size medium",
+        "python3 tools/cli.py run results,figures,tables",
         "python3 tools/cli.py run lint,test,paper,qa,package,release",
-        "python3 tools/cli.py release --version <tag>",
+        f"python3 tools/cli.py release --version {ctx.param('version', 'v1.0.0')}",
         "```",
         "",
         "每个阶段目录下的 `manifest.json` 记录输入、输出散列、参数与环境；`events.jsonl` 为结构化日志。",

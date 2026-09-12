@@ -60,6 +60,7 @@ def build_spec(
     radius: Radius | None = None,
     formulation: str | None = None,
     face_scheme: str | None = None,
+    mass_form: str | None = None,
 ) -> ProblemSpec:
     """Default specification of problem q1…q4 with optional overrides (sensitivity / alternatives)."""
     if radius is None:
@@ -70,6 +71,7 @@ def build_spec(
         radius=radius,
         formulation=formulation or str(ctx.cfg("a.scheme.formulation", "lagrangian")),
         face_scheme=face_scheme or str(ctx.cfg("a.scheme.face", "midpoint")),
+        mass_form=mass_form or str(ctx.cfg("a.scheme.mass_form", "drybasis")),
     )
 
 
@@ -144,6 +146,7 @@ def spec_to_recipe(spec: ProblemSpec) -> dict[str, Any]:
         "radius": {"t": rd.t.tolist(), "r": rd.r.tolist(), "shrink_scale": rd.shrink_scale},
         "formulation": spec.formulation,
         "face_scheme": spec.face_scheme,
+        "mass_form": spec.mass_form,
         "t_init": spec.t_init,
         "c_init": spec.c_init,
         "flux_cap": None
@@ -154,6 +157,7 @@ def spec_to_recipe(spec: ProblemSpec) -> dict[str, Any]:
             "plateau": spec.flux_cap.plateau,
             "rho_s": spec.flux_cap.rho_s,
             "scale": spec.flux_cap.scale,
+            "local_rho_s": spec.flux_cap.local_rho_s,
         },
     }
 
@@ -176,6 +180,7 @@ def spec_from_recipe(recipe: dict[str, Any]) -> ProblemSpec:
         radius=Radius(np.asarray(rd["t"], float), np.asarray(rd["r"], float), float(rd["shrink_scale"])),
         formulation=str(recipe["formulation"]),
         face_scheme=str(recipe["face_scheme"]),
+        mass_form=str(recipe.get("mass_form", "drybasis")),
         t_init=float(recipe["t_init"]),
         c_init=float(recipe["c_init"]),
         flux_cap=None
@@ -186,5 +191,6 @@ def spec_from_recipe(recipe: dict[str, Any]) -> ProblemSpec:
             float(fc["plateau"]),
             float(fc["rho_s"]),
             float(fc["scale"]),
+            bool(fc.get("local_rho_s", False)),
         ),
     )

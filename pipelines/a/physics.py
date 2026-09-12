@@ -262,12 +262,24 @@ def dry_solid_density(props: Properties, c: Any) -> Any:
     return props.rho(cc) / (1.0 + cc)
 
 
+def storage_coefficient(props: Properties, c: Any) -> Any:
+    """sigma(C) = d[rho_s(C) C]/dC = (rho0 + 2 rho1 C + rho1 C^2)/(1 + C)^2, kg/m^3 (MDR-0010).
+
+    Storage coefficient of the conservative moisture form d(rho_s C)/dt = div(rho_s D grad C); it reduces to
+    the constant rho_s only when rho1 = 0 (appendix 2), which is what the dry-basis Fick form assumes.
+    """
+    cc = np.asarray(c, dtype=float)
+    return (props.rho0 + 2.0 * props.rho1 * cc + props.rho1 * cc**2) / (1.0 + cc) ** 2
+
+
 @dataclass(frozen=True)
 class FluxCap:
     """Upper bound on the surface evaporation mass flux, kg/(m^2 s), sampled on the chamber history.
 
     ``value(t)`` interpolates linearly between the samples and holds ``plateau`` afterwards; ``rho_s`` converts
     the bound into the (kg/kg) m/s units of the moisture boundary condition; ``scale`` multiplies the bound.
+    With ``local_rho_s`` the conversion uses the local rho_s(C_s) instead of the constant ``rho_s`` (MDR-0008
+    amendment): rho_s nearly doubles over the process, so the constant-rho_s conversion relaxes the cap late on.
     """
 
     t: np.ndarray
@@ -275,9 +287,12 @@ class FluxCap:
     plateau: float
     rho_s: float
     scale: float = 1.0
+    local_rho_s: bool = False
 
     @classmethod
-    def wet_bulb(cls, chamber: Chamber, h: float, rho_s: float, scale: float = 1.0) -> FluxCap:
+    def wet_bulb(
+        cls, chamber: Chamber, h: float, rho_s: float, scale: float = 1.0, local_rho_s: bool = False
+    ) -> FluxCap:
         """Energy limit h (T_air - T_wb)/L_v(T_wb) of a surface held at the wet-bulb temperature."""
 
         def bound(temp: float, hum: float) -> float:
@@ -286,7 +301,7 @@ class FluxCap:
 
         caps = np.array([bound(float(a), float(b)) for a, b in zip(chamber.temp, chamber.hum_scale * chamber.hum)])
         plateau = bound(chamber.temp_plateau * chamber.temp_scale, chamber.hum_plateau * chamber.hum_scale)
-        return cls(np.asarray(chamber.t, dtype=float), caps, plateau, rho_s, scale)
+        return cls(np.asarray(chamber.t, dtype=float), caps, plateau, rho_s, scale, local_rho_s)
 
     def value(self, t: Any) -> Any:
         return self.scale * np.interp(t, self.t, self.cap, right=self.plateau)
@@ -297,4 +312,5 @@ class FluxCap:
             "cap_plateau": self.plateau * self.scale,
             "rho_s": self.rho_s,
             "scale": self.scale,
+            "local_rho_s": self.local_rho_s,
         }

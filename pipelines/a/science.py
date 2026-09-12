@@ -9,12 +9,15 @@ from dataclasses import replace
 from typing import Any
 
 import numpy as np
+import pandas as pd
 
 from forge.context import StageContext
 from forge.runner import stage
 from pipelines.a import verify
 from pipelines.a.common import (
+    COLS,
     PROPS,
+    R_OUT_CM,
     R_TABLE_CM,
     build_spec,
     load_chamber,
@@ -74,16 +77,22 @@ def _store_solution(ctx: StageContext, sol: Solution, spec: ProblemSpec, snapsho
 
 
 def _checks(spec: ProblemSpec, sol: Solution) -> dict[str, Any]:
-    balance = verify.moisture_balance(
-        sol.t,
-        sol.xi,
-        sol.moist,
-        sol.radius,
-        sol.air_hum,
-        spec.props.hm,
-        cum_loss=sol.cum_moist_loss,
-        flux=spec.surface_moisture_loss(sol.t, sol.moist[:, -1], sol.air_hum),
-    )
+    if spec.mass_form == "conservative":
+        assert sol.cum_moist_loss is not None
+        balance = verify.conservative_moisture_balance(
+            sol.t, sol.xi, sol.moist, sol.radius, spec.props, sol.cum_moist_loss
+        )
+    else:
+        balance = verify.moisture_balance(
+            sol.t,
+            sol.xi,
+            sol.moist,
+            sol.radius,
+            sol.air_hum,
+            spec.props.hm,
+            cum_loss=sol.cum_moist_loss,
+            flux=spec.surface_moisture_loss(sol.t, sol.moist[:, -1], sol.air_hum),
+        )
     extremum = verify.extremum_checks(sol.temp, sol.moist, sol.air_temp, sol.air_hum, spec.t_init, spec.c_init)
     report: dict[str, Any] = {"moisture_balance": balance, "extremum": extremum}
     if spec.props.rho1 == 0 and spec.props.cp1 == 0 and spec.props.k1 == 0 and spec.radius.is_constant:
@@ -146,8 +155,9 @@ def _run_recipe(job: dict[str, Any]) -> dict[str, Any]:
     return out
 
 
-def _parallel(ctx: StageContext, jobs: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    workers = max(1, min(int(ctx.cfg("a.sensitivity.workers", 8)), len(jobs)))
+def _parallel(ctx: StageContext, jobs: list[dict[str, Any]], workers: int | None = None) -> list[dict[str, Any]]:
+    limit = int(ctx.cfg("a.sensitivity.workers", 8)) if workers is None else int(workers)
+    workers = max(1, min(limit, len(jobs)))
     ctx.log.info("parallel.start", jobs=len(jobs), workers=workers)
     results: list[dict[str, Any]] = []
     with ProcessPoolExecutor(max_workers=workers) as pool:
@@ -439,9 +449,65 @@ def q4(ctx: StageContext) -> dict[str, Any]:
 # ----------------------------------------------------------------------------------------------
 
 
+def _output_grid_study(ctx: StageContext, refine: int, opts: dict[str, Any]) -> dict[str, Any]:
+    """Refinement study on the *full* result-file grid (every 1 s x 0.1 cm), not only the table instants.
+
+    The table instants start at 100 s (problem 1) and 0.5 h (problem 2), but result1/result2.xlsx start at
+    t = 1 s, where the surface boundary layer sqrt(D t) is thinner than a few production cells. This study
+    therefore compares the *delivered* arrays against a Richardson limit built from two finer grids on every
+    one of the 1800 x 21 (resp. 10800 x 21) output cells, and counts the cells whose fourth decimal differs.
+    """
+    levels = [refine + 1, refine + 2]
+    grids = {"q1": np.arange(0.0, 1800.0 + 0.5, 1.0), "q2": np.arange(0.0, 3.0 * HOUR + 0.5, 1.0)}
+    jobs = [
+        {
+            "label": f"{prob}:out:k{k}",
+            "recipe": spec_to_recipe(build_spec(ctx, prob)),
+            "n": 20 * 2**k,
+            "opts": opts,
+            "mode": "fixed",
+            "t_out": t_out.tolist(),
+        }
+        for prob, t_out in grids.items()
+        for k in levels
+    ]
+    results = {r["label"]: r for r in _parallel(ctx, jobs, workers=2)}
+    out: dict[str, Any] = {}
+    for prob, t_out in grids.items():
+        for field in ("temp", "moist"):
+            delivered = pd.read_parquet(ctx.dep(prob) / f"profiles_{field}.parquet")[COLS].to_numpy(float)
+            fine = {k: np.asarray(results[f"{prob}:out:k{k}"][field], dtype=float) for k in levels}
+            d1 = float(np.max(np.abs(delivered - fine[levels[0]])))
+            d2 = float(np.max(np.abs(fine[levels[0]] - fine[levels[1]])))
+            order = float(np.log2(d1 / d2)) if d2 > 0.0 else float("nan")
+            used = order if 1.0 <= order <= 3.0 else 2.0
+            limit = fine[levels[1]] + (fine[levels[1]] - fine[levels[0]]) / (2.0**used - 1.0)
+            err = np.abs(delivered - limit)[1:]  # t = 0 is the exact initial condition
+            times = t_out[1:]
+            i, j = np.unravel_index(int(np.argmax(err)), err.shape)
+            differing = np.round(delivered[1:], 4) != np.round(limit[1:], 4)
+            bad_rows = np.where(differing.any(axis=1))[0]
+            last_t = float(times[bad_rows[-1]]) if len(bad_rows) else 0.0
+            after = err[times > last_t]
+            out[f"{prob}_{field}"] = {
+                "grid_levels": levels,
+                "observed_order": order,
+                "order_used": used,
+                "production_error": float(err.max()),
+                "max_at_t_s": float(times[i]),
+                "max_at_r_cm": float(R_OUT_CM[j]),
+                "cells_total": int(err.size),
+                "cells_differing": int(differing.sum()),
+                "last_differing_t_s": last_t,
+                "error_after_last_differing": float(after.max()) if after.size else 0.0,
+            }
+            ctx.log.info("convergence.output_grid", quantity=f"{prob}_{field}", **out[f"{prob}_{field}"])
+    return out
+
+
 @stage(
     "convergence",
-    deps=("ingest", "q3", "q4"),
+    deps=("ingest", "q1", "q2", "q3", "q4"),
     description="Grid/time convergence of all four problems (observed orders, drying-time convergence)",
 )
 def convergence(ctx: StageContext) -> dict[str, Any]:
@@ -519,8 +585,11 @@ def convergence(ctx: StageContext) -> dict[str, Any]:
         report["grid"][f"{prob}_moist_times_h"] = sorted(t / HOUR for t in common)
         dry = [results[f"{prob}:k{k}"]["t_dry"] for k in range(levels)]
         rows = [{"k": k, "dr_cm": 0.1 / 2**k, "t_dry_h": d / HOUR} for k, d in enumerate(dry)]
+        orders_t = verify.triplet_orders([d / HOUR for d in dry])
         for i in range(levels - 1):
             rows[i]["diff_to_finest_min"] = (dry[i] - dry[-1]) / 60.0
+        for i, row in enumerate(rows):
+            row["observed_order_triplet"] = orders_t[i]
         report["grid"][f"{prob}_t_dry"] = rows
     base = results[f"q3:k{refine}"]
     for label, _extra in time_cases:
@@ -542,8 +611,17 @@ def convergence(ctx: StageContext) -> dict[str, Any]:
         "q3_moist_err": report["grid"]["q3_moist"][refine]["max_abs_error"] if refine < levels - 1 else None,
         "q4_moist_err": report["grid"]["q4_moist"][refine]["max_abs_error"] if refine < levels - 1 else None,
     }
+    report["output_grid"] = _output_grid_study(ctx, refine, opts)
     ctx.write_json("convergence.json", report)
     ctx.write_json("raw_t_dry.json", {k: v.get("t_dry") for k, v in results.items() if "t_dry" in v})
+    for key, row in report["output_grid"].items():
+        tag = _tag(key)
+        ctx.number(f"OutGridErr{tag}", row["production_error"], ".1e")
+        ctx.number(f"OutGridOrder{tag}", row["observed_order"], ".2f")
+        ctx.number(f"OutGridCells{tag}", row["cells_differing"])
+        ctx.number(f"OutGridCellPct{tag}", 100.0 * row["cells_differing"] / row["cells_total"], ".2f")
+        ctx.number(f"OutGridLastDiffSec{tag}", row["last_differing_t_s"], ".0f")
+        ctx.number(f"OutGridErrAfter{tag}", row["error_after_last_differing"], ".1e")
     orders = {}
     for key, rows in report["grid"].items():
         if key.endswith(("_t_dry", "_times_h")):
@@ -553,12 +631,18 @@ def convergence(ctx: StageContext) -> dict[str, Any]:
         tag = _tag(key)
         if vals:
             ctx.number(f"ConvOrder{tag}", vals[-1], ".2f")
+        triplet = [r["observed_order_triplet"] for r in rows if r.get("observed_order_triplet") is not None]
+        if triplet:
+            ctx.number(f"ConvTripletOrder{tag}", triplet[-1], ".2f")
         if refine < levels - 1:
             ctx.number(f"ConvErr{tag}", rows[refine]["max_abs_error"], ".1e")
     for prob in ("q3", "q4"):
         rows = report["grid"][f"{prob}_t_dry"]
         tag = "Qthree" if prob == "q3" else "Qfour"
         ctx.number(f"ConvDryDiff{tag}Min", abs(rows[refine]["diff_to_finest_min"]), ".2f")
+        triplet = [r["observed_order_triplet"] for r in rows if r.get("observed_order_triplet") is not None]
+        if triplet:
+            ctx.number(f"ConvDryOrder{tag}", triplet[-1], ".2f")
     ctx.number("TimeStrictDiffMoist", report["time"]["tol:strict"]["max_abs_diff_moist"], ".1e")
     ctx.number("TimeRadauDiffMoist", report["time"]["tol:radau"]["max_abs_diff_moist"], ".1e")
     ctx.number("TimeStrictDryDiffSec", abs(report["time"]["tol:strict"]["t_dry_diff_s"]), ".2f")
@@ -606,9 +690,69 @@ def _analytic_case(ctx: StageContext, field: str, levels: int, opts: dict[str, A
     }
 
 
+def _duhamel_case(ctx: StageContext, levels: int, opts: dict[str, Any]) -> dict[str, Any]:
+    """Problem 1's *actual* temperature field against the exact Duhamel series (time-dependent ambient).
+
+    The ambient of problem 1 is not constant (28 -> 41.5 degC over 1800 s), so the separation-of-variables
+    series is not its solution; Duhamel superposition over the piecewise-linear chamber history is. This gives
+    a true-solution benchmark for the delivered temperature sheet of result1.xlsx, not only for a constructed
+    constant-ambient case.
+    """
+    chamber = load_chamber(ctx)
+    props = APPENDIX2
+    alpha = props.k0 / (props.rho0 * props.cp0)
+    spec = ProblemSpec(props, chamber, Radius.constant(R0))
+    xi_table = R_TABLE_CM / (100.0 * R0)
+    t_table = np.concatenate([[0.0], Q1_TABLE_T])
+    exact_table = verify.duhamel_field(
+        xi_table, t_table, alpha, props.h, props.k0, T_INIT, chamber.t, chamber.temp, chamber.temp_plateau
+    )
+    rows = []
+    for k in range(levels):
+        n = 20 * 2**k
+        sol = solve(spec, n, t_table, **opts)
+        num = sol.temp[1:, :: n // 4]
+        rows.append({"k": k, "dr_cm": 0.1 / 2**k, "max_abs_error": float(np.max(np.abs(num - exact_table[1:])))})
+    for i in range(len(rows) - 1):
+        rows[i]["observed_order"] = float(np.log2(rows[i]["max_abs_error"] / rows[i + 1]["max_abs_error"]))
+    delivered = pd.read_parquet(ctx.dep("q1") / "profiles_temp.parquet")
+    t_full = delivered["t"].to_numpy(float)
+    exact_full = verify.duhamel_field(
+        R_OUT_CM / (100.0 * R0),
+        t_full,
+        alpha,
+        props.h,
+        props.k0,
+        T_INIT,
+        chamber.t,
+        chamber.temp,
+        chamber.temp_plateau,
+    )
+    err_full = np.abs(delivered[COLS].to_numpy(float) - exact_full)[1:]
+    times = t_full[1:]
+    i, j = np.unravel_index(int(np.argmax(err_full)), err_full.shape)
+    return {
+        "field": "temp",
+        "biot": props.h * R0 / props.k0,
+        "diffusivity": alpha,
+        "ambient": "piecewise linear, attachment 1 (28.0 -> 41.5 degC)",
+        "times_s": Q1_TABLE_T.tolist(),
+        "levels": rows,
+        "full_grid": {
+            "cells": int(err_full.size),
+            "max_abs_error": float(err_full.max()),
+            "max_at_t_s": float(times[i]),
+            "max_at_r_cm": float(R_OUT_CM[j]),
+            "cells_differing_fourth_decimal": int(
+                (np.round(delivered[COLS].to_numpy(float)[1:], 4) != np.round(exact_full[1:], 4)).sum()
+            ),
+        },
+    }
+
+
 @stage(
     "verification",
-    deps=("ingest", "q3"),
+    deps=("ingest", "q1", "q2", "q3"),
     description="Analytic Bessel-series comparison and independent 2-D axisymmetric cross-check / end effects",
 )
 def verification(ctx: StageContext) -> dict[str, Any]:
@@ -616,8 +760,28 @@ def verification(ctx: StageContext) -> dict[str, Any]:
     refine = int(ctx.cfg("a.grid.refine", 3))
     levels = min(int(ctx.cfg("a.grid.convergence_levels", 5)), refine + 2)
     analytic = {f: _analytic_case(ctx, f, levels, opts) for f in ("temp", "moist")}
+    analytic["duhamel"] = _duhamel_case(ctx, levels, opts)
     ctx.log.info("verification.analytic", **{f: a["levels"][refine]["max_abs_error"] for f, a in analytic.items()})
+    ctx.log.info("verification.duhamel", **analytic["duhamel"]["full_grid"])
     ctx.write_json("analytic.json", analytic)
+
+    # problems 2 and 3 are the same initial-boundary-value problem (appendix 3, fixed radius) integrated over
+    # different horizons; result2.xlsx must therefore be the first 3 h of the whole-process solution (MDR-0005)
+    q2m = pd.read_parquet(ctx.dep("q2") / "profiles_moist.parquet")
+    q2t = pd.read_parquet(ctx.dep("q2") / "profiles_temp.parquet")
+    q3m = pd.read_parquet(ctx.dep("q3") / "profiles_moist.parquet")
+    q3t = pd.read_parquet(ctx.dep("q3") / "profiles_temp.parquet")
+    shared = np.intersect1d(q2m["t"].to_numpy(float), q3m["t"].to_numpy(float))
+    sel2, sel3 = np.isin(q2m["t"].to_numpy(float), shared), np.isin(q3m["t"].to_numpy(float), shared)
+    horizon_check = {
+        "shared_instants": len(shared),
+        "max_abs_diff_moist": float(np.max(np.abs(q2m[COLS].to_numpy(float)[sel2] - q3m[COLS].to_numpy(float)[sel3]))),
+        "max_abs_diff_temp": float(np.max(np.abs(q2t[COLS].to_numpy(float)[sel2] - q3t[COLS].to_numpy(float)[sel3]))),
+    }
+    horizon_check["passed"] = bool(
+        horizon_check["max_abs_diff_moist"] < 1e-6 and horizon_check["max_abs_diff_temp"] < 1e-4
+    )
+    ctx.log.info("verification.horizon_consistency", **horizon_check)
 
     # independent 2-D axisymmetric model, coarse grid; insulated ends must reproduce the 1-D scheme exactly
     chamber = load_chamber(ctx)
@@ -680,9 +844,16 @@ def verification(ctx: StageContext) -> dict[str, Any]:
         moist_1d=one_d_long.moist,
         centre_line=two_d["moist"][:, 0, :],
     )
-    report = {"analytic": analytic, "cross_check_2d": cross, "end_effect_2d": end_effect}
+    report = {
+        "analytic": analytic,
+        "cross_check_2d": cross,
+        "end_effect_2d": end_effect,
+        "horizon_consistency": horizon_check,
+    }
     report["passed"] = bool(
-        cross["passed"] and all(a["levels"][refine]["max_abs_error"] < 1e-4 for a in analytic.values())
+        cross["passed"]
+        and horizon_check["passed"]
+        and all(a["levels"][refine]["max_abs_error"] < 1e-4 for a in analytic.values())
     )
     ctx.write_json("verification_report.json", report)
     ctx.number("AnalyticErrTemp", analytic["temp"]["levels"][refine]["max_abs_error"], ".1e")
@@ -691,6 +862,15 @@ def verification(ctx: StageContext) -> dict[str, Any]:
     ctx.number("AnalyticOrderMoist", analytic["moist"]["levels"][refine - 1]["observed_order"], ".2f")
     ctx.number("AnalyticBiotHeat", analytic["temp"]["biot"], ".3f")
     ctx.number("AnalyticBiotMass", analytic["moist"]["biot"], ".3f")
+    duh = analytic["duhamel"]
+    ctx.number("DuhamelErrTable", duh["levels"][refine]["max_abs_error"], ".1e")
+    ctx.number("DuhamelOrder", duh["levels"][refine - 1]["observed_order"], ".2f")
+    ctx.number("DuhamelErrFull", duh["full_grid"]["max_abs_error"], ".1e")
+    ctx.number("DuhamelCellsDiffer", duh["full_grid"]["cells_differing_fourth_decimal"])
+    ctx.number("DuhamelCells", duh["full_grid"]["cells"])
+    ctx.number("HorizonDiffMoist", horizon_check["max_abs_diff_moist"], ".1e")
+    ctx.number("HorizonDiffTemp", horizon_check["max_abs_diff_temp"], ".1e")
+    ctx.number("HorizonSharedInstants", horizon_check["shared_instants"])
     ctx.number("CrossCheckDiffMoist", cross["max_abs_diff_moist"], ".1e")
     ctx.number("CrossCheckDiffTemp", cross["max_abs_diff_temp"], ".1e")
     ctx.number("EndEffectMidplaneDiff", end_effect["max_abs_diff_midplane_moist"], ".1e")
@@ -703,6 +883,8 @@ def verification(ctx: StageContext) -> dict[str, Any]:
     return {
         "passed": report["passed"],
         "cross_check": cross["passed"],
+        "duhamel_full_grid_error": duh["full_grid"]["max_abs_error"],
+        "horizon_consistency": horizon_check["passed"],
         "end_effect_pct": end_effect.get("t_dry_rel_diff_pct"),
     }
 
@@ -748,6 +930,7 @@ def sensitivity(ctx: StageContext) -> dict[str, Any]:
         "plateau_nominal": replace(base3, chamber=load_chamber(ctx, "nominal")),
         "face_arithmetic": replace(base3, face_scheme="arithmetic"),
         "face_harmonic": replace(base3, face_scheme="harmonic"),
+        "mass_conservative": replace(base3, mass_form="conservative"),
     }
     for name, spec in alternatives.items():
         jobs.append(job(f"alt:{name}", spec))

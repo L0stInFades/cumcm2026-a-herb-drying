@@ -18,7 +18,7 @@ from scipy import sparse
 from scipy.optimize import brentq
 from scipy.special import j0, j1, jn_zeros
 
-from pipelines.a.physics import C_TARGET, LENGTH, R0, Chamber, Properties
+from pipelines.a.physics import C_TARGET, LENGTH, R0, Chamber, Properties, dry_solid_density
 
 # ----------------------------------------------------------------------------------------------
 # 1. Analytic solution: infinite cylinder, uniform initial value, Robin boundary, constant ambient
@@ -53,6 +53,58 @@ def analytic_field(
     theta = analytic_robin_cylinder(xi, fo, bi)
     theta[np.asarray(t) == 0.0] = 1.0  # the series converges slowly at Fo = 0; the initial value is exact
     return u_inf + (u0 - u_inf) * theta
+
+
+def duhamel_field(
+    xi: np.ndarray,
+    t: np.ndarray,
+    diffusivity: float,
+    transfer: float,
+    coeff: float,
+    u0: float,
+    knots: np.ndarray,
+    values: np.ndarray,
+    tail: float | None = None,
+    n_terms: int = 400,
+) -> np.ndarray:
+    """Exact series solution for a *time-dependent, piecewise-linear* ambient history (Duhamel superposition).
+
+    The constant-property Robin cylinder with ambient u_air(t) and uniform initial value u0 has
+    u = u_air(t) + sum_m c_m B_m(t) J_0(lambda_m xi), c_m = 2Bi/((lambda_m^2+Bi^2) J_0(lambda_m)),
+    B_m(t) = (u0 - u_air(0)) e^{-mu_m t} - int_0^t e^{-mu_m (t-s)} u_air'(s) ds, mu_m = a lambda_m^2/R0^2.
+    For a piecewise-linear u_air the integral is elementary on every segment, so the result is exact up to the
+    series truncation. ``tail`` is the constant value held after the last knot (a jump there is handled as a
+    Dirac in u_air'). This is the analytic benchmark for problem 1, whose ambient is *not* constant.
+    """
+    bi = transfer * R0 / coeff
+    lam = robin_eigenvalues(bi, n_terms)
+    cm = 2.0 * bi / ((lam**2 + bi**2) * j0(lam))
+    mu = diffusivity * lam**2 / R0**2
+    tt = np.asarray(t, dtype=float)
+    kn = np.asarray(knots, dtype=float)
+    va = np.asarray(values, dtype=float)
+    amp = np.empty((len(tt), len(lam)))
+    amp[:] = (u0 - va[0]) * np.exp(-np.outer(tt, mu))
+    for j in range(len(kn) - 1):
+        a, b = float(kn[j]), float(kn[j + 1])
+        slope = float((va[j + 1] - va[j]) / (b - a))
+        if slope == 0.0 or a >= tt.max():
+            continue
+        active = tt > a
+        upper = np.minimum(tt, b)
+        e_b = np.exp(-np.outer(tt - upper, mu))
+        e_a = np.exp(-np.outer(np.maximum(tt - a, 0.0), mu))
+        amp[active] -= (slope / mu)[None, :] * (e_b[active] - e_a[active])
+    if tail is not None:
+        jump = float(tail - va[-1])
+        if jump != 0.0:
+            after = tt > kn[-1]
+            if after.any():
+                amp[after] -= jump * np.exp(-np.outer(tt[after] - kn[-1], mu))
+    air = np.interp(tt, kn, va, right=va[-1] if tail is None else tail)
+    field = air[:, None] + (amp * cm[None, :]) @ j0(np.outer(lam, np.asarray(xi, dtype=float)))
+    field[tt == 0.0] = u0  # the series for the constant 1 converges slowly at t = 0; the initial value is exact
+    return field
 
 
 # ----------------------------------------------------------------------------------------------
@@ -145,6 +197,30 @@ def energy_balance(
     return report
 
 
+def conservative_moisture_balance(
+    t: np.ndarray,
+    xi: np.ndarray,
+    moist: np.ndarray,
+    radius: np.ndarray,
+    props: Properties,
+    cum_loss: np.ndarray,
+) -> dict[str, Any]:
+    """Balance of the rho_s-weighted inventory of the conservative moisture form (MDR-0010).
+
+    For d(rho_s C)/dt = div(rho_s D grad C) on a fixed domain the discrete invariant is
+    sum_i V_i rho_s(C_i) C_i + Q_m/R0^2 with Q_m = int rho_s(C_s) hm (C_s - C_air)/R dt.
+    """
+    vol = control_volumes(xi)
+    inventory = (dry_solid_density(props, moist) * moist) @ vol
+    lhs = radius[0] ** 2 * (inventory - inventory[0])
+    report: dict[str, Any] = {"exact": _balance(lhs, -(radius[0] ** 2) * np.asarray(cum_loss, dtype=float))}
+    report["max_relative_residual"] = report["exact"]["max_relative_residual"]
+    report["final_relative_residual"] = report["exact"]["final_relative_residual"]
+    report["inventory_initial"] = float(inventory[0])
+    report["inventory_final"] = float(inventory[-1])
+    return report
+
+
 def extremum_checks(
     temp: np.ndarray, moist: np.ndarray, air_temp: np.ndarray, air_hum: np.ndarray, t0: float, c0: float
 ) -> dict[str, Any]:
@@ -191,7 +267,14 @@ def drying_checks(
 
 
 def convergence_table(levels: list[dict[str, Any]], key: str) -> list[dict[str, Any]]:
-    """levels: [{"k": k, "dr_cm": ..., key: array}] with arrays sampled on common points; finest is last."""
+    """levels: [{"k": k, "dr_cm": ..., key: array}] with arrays sampled on common points; finest is last.
+
+    Two observed orders are reported. ``observed_order`` uses errors against the finest level as the reference,
+    which is what a self-convergence study can measure directly but which is biased upward on the last pair by
+    the factor log2[(1-4^{-(m-k)})/(1-4^{-(m-k-1)})] (2.32 for the last usable pair of a second-order scheme).
+    ``observed_order_triplet`` is the unbiased grid-triplet estimate p = log2(||u_k-u_{k+1}||/||u_{k+1}-u_{k+2}||),
+    which needs no reference solution at all (MDR-0011).
+    """
     reference = levels[-1][key]
     rows: list[dict[str, Any]] = []
     errors: list[float] = []
@@ -199,12 +282,30 @@ def convergence_table(levels: list[dict[str, Any]], key: str) -> list[dict[str, 
         err = float(np.max(np.abs(level[key] - reference)))
         errors.append(err)
         rows.append({"k": level["k"], "dr_cm": level["dr_cm"], "max_abs_error": err})
+    diffs = [float(np.max(np.abs(levels[i][key] - levels[i + 1][key]))) for i in range(len(levels) - 1)]
     for i, row in enumerate(rows):
         if i + 1 < len(rows) and errors[i + 1] > 0:
             row["observed_order"] = float(np.log2(errors[i] / errors[i + 1]))
         else:
             row["observed_order"] = None
+        if i + 1 < len(diffs) and diffs[i + 1] > 0:
+            row["observed_order_triplet"] = float(np.log2(diffs[i] / diffs[i + 1]))
+        else:
+            row["observed_order_triplet"] = None
     return rows
+
+
+def triplet_orders(values: list[float]) -> list[float | None]:
+    """Grid-triplet observed orders p_k = log2|(u_k-u_{k+1})/(u_{k+1}-u_{k+2})| of a scalar sequence."""
+    out: list[float | None] = []
+    for i in range(len(values)):
+        if i + 2 < len(values):
+            d1 = float(values[i] - values[i + 1])
+            d2 = float(values[i + 1] - values[i + 2])
+            out.append(float(np.log2(abs(d1 / d2))) if d2 != 0.0 and d1 != 0.0 else None)
+        else:
+            out.append(None)
+    return out
 
 
 def richardson_estimate(coarse_err: float, fine_err: float, order: float = 2.0) -> float:

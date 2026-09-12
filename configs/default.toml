@@ -54,6 +54,7 @@ plateau = "mean_last_hour" # constant-temperature stage after 14400 s (MDR-0003)
 [a.scheme]
 face = "midpoint"          # interface coefficient: midpoint | arithmetic | harmonic (MDR-0004)
 formulation = "lagrangian" # moving boundary: lagrangian (dry matter conserved) | eulerian (MDR-0006)
+mass_form = "drybasis"     # moisture conservation form: drybasis (rho_s constant) | conservative (MDR-0010)
 
 [a.drying]
 horizon_s = 432000         # first integration horizon for the drying-end search (5 days), doubled if needed

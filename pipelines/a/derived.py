@@ -10,10 +10,21 @@ from __future__ import annotations
 from typing import Any
 
 import numpy as np
+import pandas as pd
 
 from forge.context import StageContext
 from forge.runner import stage
-from pipelines.a.physics import APPENDIX3, APPENDIX4, C_INIT, C_TARGET, LENGTH, R0, thermal_diffusivity
+from pipelines.a.physics import (
+    APPENDIX3,
+    APPENDIX4,
+    C_INIT,
+    C_TARGET,
+    LENGTH,
+    PLATEAU_WINDOW,
+    R0,
+    dry_solid_density,
+    thermal_diffusivity,
+)
 
 HOUR = 3600.0
 Q1_END_S = 1800.0
@@ -55,7 +66,7 @@ def value_at(t: np.ndarray, values: np.ndarray, instant: float) -> float:
 
 @stage(
     "derived",
-    deps=("q1", "q2", "q3", "q4", "convergence"),
+    deps=("ingest", "q1", "q2", "q3", "q4", "convergence"),
     description="Dimensionless groups, time scales, extrapolated grid errors and solver statistics quoted in the paper",
 )
 def derived(ctx: StageContext) -> dict[str, Any]:
@@ -98,8 +109,43 @@ def derived(ctx: StageContext) -> dict[str, Any]:
     # drying-time discretisation error of the production grid (Richardson, order 2, two finest levels)
     rows3 = conv["grid"]["q3_t_dry"]
     rows4 = conv["grid"]["q4_t_dry"]
-    limit3, err3 = richardson_error([float(r["t_dry_h"]) for r in rows3])
-    limit4, err4 = richardson_error([float(r["t_dry_h"]) for r in rows4])
+
+    def _observed(rows: list[dict[str, Any]]) -> float:
+        """Finest unbiased grid-triplet order, clipped to a sane range (falls back to the formal order 2)."""
+        vals = [r["observed_order_triplet"] for r in rows if r.get("observed_order_triplet") is not None]
+        return float(vals[-1]) if vals and 0.5 <= float(vals[-1]) <= 3.0 else 2.0
+
+    order3, order4 = _observed(rows3), _observed(rows4)
+    limit3, err3 = richardson_error([float(r["t_dry_h"]) for r in rows3], order3)
+    limit4, err4 = richardson_error([float(r["t_dry_h"]) for r in rows4], order4)
+
+    # problem 4: the given R(t) and the given rho(C) are not compatible under conservation of dry matter
+    rho_s_wet = float(dry_solid_density(APPENDIX4, np.array(C_INIT)))
+    rho_s_dry = float(dry_solid_density(APPENDIX4, np.array(C_TARGET)))
+    r4_end_cm = float(q4["spec"]["radius"]["r_end_cm"])
+    dry_matter_ratio = (rho_s_dry * r4_end_cm**2) / (rho_s_wet * R0**2 * 1e4)
+    implied_r_end_cm = 100.0 * R0 / np.sqrt(rho_s_dry / rho_s_wet)
+    shrink_delta_cm = 100.0 * R0 - r4_end_cm
+    shrink_scaling = -2.0 * shrink_delta_cm / r4_end_cm  # dln t/dln s from t ~ R_inf^2, R_inf = R0 - s (R0 - R_data)
+
+    # chamber data: plateau-window statistics and the jump at the switch to the plateau
+    chamber = pd.read_parquet(ctx.dep("ingest") / "data" / "附件1__Sheet1.parquet")
+    ct = chamber["时间"].to_numpy(float)
+    c_temp = chamber["温度"].to_numpy(float)
+    c_hum = chamber["水分浓度"].to_numpy(float)
+    window = ct >= ct[-1] - PLATEAU_WINDOW
+    plateau_temp = float(q3["spec"]["chamber"]["temp_plateau"])
+    noise = {
+        "window_s": PLATEAU_WINDOW,
+        "temp_min": float(c_temp[window].min()),
+        "temp_max": float(c_temp[window].max()),
+        "temp_step_max": float(np.abs(np.diff(c_temp[window])).max()),
+        "temp_std": float(c_temp[window].std(ddof=1)),
+        "temp_step_max_all": float(np.abs(np.diff(c_temp)).max()),
+        "hum_step_max": float(np.abs(np.diff(c_hum[window])).max()),
+        "plateau_jump_K": float(abs(c_temp[-1] - plateau_temp)),
+        "plateau_jump_hum": float(abs(c_hum[-1] - float(q3["spec"]["chamber"]["hum_plateau"]))),
+    }
 
     # problem 4: shrinkage geometry
     r_end_cm = float(q4["spec"]["radius"]["r_end_cm"])
@@ -154,6 +200,14 @@ def derived(ctx: StageContext) -> dict[str, Any]:
             "stats": q4["stats"],
         },
     }
+    report["chamber_noise"] = noise
+    report["q4"]["dry_matter_ratio"] = dry_matter_ratio
+    report["q4"]["implied_r_end_cm"] = implied_r_end_cm
+    report["q4"]["rho_s_wet"] = rho_s_wet
+    report["q4"]["rho_s_dry"] = rho_s_dry
+    report["q4"]["shrink_scaling_prediction"] = shrink_scaling
+    report["q3"]["richardson_order"] = order3
+    report["q4"]["richardson_order"] = order4
     ctx.write_json("derived.json", report)
 
     ctx.number("AspectRatio", LENGTH / R0, ".1f")
@@ -178,7 +232,30 @@ def derived(ctx: StageContext) -> dict[str, Any]:
     ctx.number("DmaxAppendixFour", d4_max, ".2e")
     ctx.number("DtargetAppendixFour", d4_target, ".1e")
     ctx.number("DratioThreeToFourInit", d_max / d4_max, ".1f")
+    ctx.number("QthreeDryOrderUsed", order3, ".2f")
+    ctx.number("QfourDryOrderUsed", order4, ".2f")
     ctx.number("QthreeDryHoursExtrapolated", limit3, ".4f")
+    ctx.number("QthreeDryHoursExtrapolatedTwo", limit3, ".2f")
+    ctx.number("QfourDryHoursExtrapolatedTwo", limit4, ".2f")
+    ctx.number(
+        "QtwoBiotMassInit", APPENDIX3.hm * R0 / float(APPENDIX3.diffusivity(np.array(C_INIT), np.array(28.0))), ".2f"
+    )
+    ctx.number("QfourRhoSWet", rho_s_wet, ".0f")
+    ctx.number("QfourRhoSDry", rho_s_dry, ".0f")
+    ctx.number("QfourDryMatterRatio", dry_matter_ratio, ".3f")
+    ctx.number("QfourDryMatterGapPct", 100.0 * (1.0 - dry_matter_ratio), ".1f")
+    ctx.number("QfourImpliedRadiusCm", implied_r_end_cm, ".3f")
+    ctx.number("QfourImpliedRadiusGapPct", 100.0 * (implied_r_end_cm / r4_end_cm - 1.0), ".1f")
+    ctx.number("ShrinkDeltaCm", shrink_delta_cm, ".3f")
+    ctx.number("ShrinkRadiusLowCm", 100.0 * R0 - 0.8 * shrink_delta_cm, ".3f")
+    ctx.number("ShrinkRadiusHighCm", 100.0 * R0 - 1.2 * shrink_delta_cm, ".3f")
+    ctx.number("ShrinkScalingPrediction", shrink_scaling, ".2f")
+    ctx.number("ChamberPlateauTempMin", noise["temp_min"], ".2f")
+    ctx.number("ChamberPlateauTempMax", noise["temp_max"], ".2f")
+    ctx.number("ChamberPlateauStepMax", noise["temp_step_max"], ".2f")
+    ctx.number("ChamberPlateauStd", noise["temp_std"], ".2f")
+    ctx.number("ChamberStepMaxAll", noise["temp_step_max_all"], ".2f")
+    ctx.number("ChamberPlateauJump", noise["plateau_jump_K"], ".2f")
     ctx.number("QthreeGridErrorMin", err3 * 60.0, ".2f")
     ctx.number("QthreeCentreMoistGridRow", centre3, ".6f")
     ctx.number("QfourDryHoursExtrapolated", limit4, ".4f")
