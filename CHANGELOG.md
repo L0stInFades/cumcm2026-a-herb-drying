@@ -22,3 +22,8 @@
 
 ### Verified
 - 三题仓库全链路冒烟通过：25 项单元/性质/集成测试，13 项论文与结果 QA 检查，发布散列核对一致。
+
+### Verified（run 20260912-102714-108fa95，代码 108fa95）
+- 17 个阶段（ingest … test, paper, qa）全部 completed；qa 16/16 通过（含 result1–4.xlsx 契约）；lint 0 项；45 项测试通过。
+- 独立校验：q1–q4、verification（贝塞尔级数解 1×10⁻⁵、二维交叉检验）、extension 的校验报告全部 `passed=true`。
+- 身份信息观察名单命中 5 处，均为附录程序清单中 `configs/default.toml` 打印的观察名单模式本身（"大学、学院、赛区、队号、指导教师"），不含任何身份信息；复核结论：无需处理。
