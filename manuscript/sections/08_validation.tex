@@ -66,9 +66,7 @@ T(\xi,t)=T_{\mathrm{air}}(t)+\sum_{m\ge1}c_m\Bigl[\bigl(T_0-T_{\mathrm{air}}(0)\
 问题 1 的常物性温度方程另有能量不变量，残差同量级。
 
 
-\paragraph{极值原理与单调性。} 校验器在全部输出时刻检查三项（命题~\ref{prop:extremum}）：(i) $T$ 与 $C$ 分别落在由初值和环境值张成的包络
-\[[\,\min(T_0,\min T_{\mathrm{air}}),\ \max(T_0,\max T_{\mathrm{air}})\,],\qquad [\,\min(C_0,\min C_{\mathrm{air}}),\ C_0\,]\]
-之内；(ii) $C$ 沿 $r$ 单调不增；(iii) $\max_rC$ 在中心取得。三项在四个问题中全部成立（表~\ref{tab:verification}），因此不存在非物理的负含水率、超调或内部极值。
+\paragraph{极值原理与单调性。} 校验器在全部输出时刻检查三项（命题~\ref{prop:extremum}）：(i) $T$、$C$ 分别落在由初值与环境值张成的包络 $[\min(T_0,\min T_{\mathrm{air}}),\max(T_0,\max T_{\mathrm{air}})]$、$[\min(C_0,\min C_{\mathrm{air}}),C_0]$ 之内；(ii) $C$ 沿 $r$ 单调不增；(iii) $\max_rC$ 在中心取得。三项在四个问题中全部成立（表~\ref{tab:verification}），因此不存在非物理的负含水率、超调或内部极值。
 
 \paragraph{判据的一致性。} 校验器独立检查：在 $t<t_{\mathrm{end}}$ 的全部输出行上 $\max_iC_i\ge C^\ast$，在 $t\ge t_{\mathrm{end}}$ 的全部行上 $\max_iC_i<C^\ast$，且 $t_{\mathrm{end}}$ 处的剖面最大值等于 $C^\ast$（误差 $<10^{-12}$）。这确认事件求根定位的确实是判据首次成立的时刻。
 
@@ -89,7 +87,7 @@ T(\xi,t)=T_{\mathrm{air}}(t)+\sum_{m\ge1}c_m\Bigl[\bigl(T_0-T_{\mathrm{air}}(0)\
 
 \subsection{结果文件与表格的一致性检查}
 
-四个结果工作簿（以及补充交付的 \texttt{result2\_全过程.xlsx}）由附件 3 的模板生成（不重建工作簿结构），并由自动契约逐项检查：工作表名称与模板一致、A1 文字与模板一致、首行的距离刻度落在 $0,0.5,1,1.5,2$ \si{\centi\meter} 的应有位置、表头单元数（\nolinkurl{result4.xlsx} 为 23，含“药材表面”列）、A 列时间的\textbf{步长与起点}（\SI{1}{\second}／\SI{60}{\second}）、行数区间、数值区无非数字单元、小数位不超过四位、问题 4 中且仅在超出当前半径处留空。全部契约检查通过（附录~\ref{app:repro}）。论文表格与结果文件由同一份求解结果生成，因此逐位一致：\nolinkurl{result3.xlsx} 共 $\valQthreeResultRows$ 个时间行、\nolinkurl{result4.xlsx} 共 $\valQfourResultRows$ 行。
+四个结果工作簿（以及补充交付的 \cjkfile{result2\_全过程.xlsx}）由附件 3 的模板生成（不重建工作簿结构），并由自动契约逐项检查：工作表名称与模板一致、A1 文字与模板一致、首行的距离刻度落在 $0,0.5,1,1.5,2$ \si{\centi\meter} 的应有位置、表头单元数（\nolinkurl{result4.xlsx} 为 23，含“药材表面”列）、A 列时间的\textbf{步长与起点}（\SI{1}{\second}／\SI{60}{\second}）、行数区间、数值区无非数字单元、小数位不超过四位、问题 4 中且仅在超出当前半径处留空。全部契约检查通过（附录~\ref{app:repro}）。论文表格与结果文件由同一份求解结果生成，因此逐位一致：\nolinkurl{result3.xlsx} 共 $\valQthreeResultRows$ 个时间行、\nolinkurl{result4.xlsx} 共 $\valQfourResultRows$ 行。
 
 \subsection{灵敏度与不确定性}
 \label{subsec:sensitivity}

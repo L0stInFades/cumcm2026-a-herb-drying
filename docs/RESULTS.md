@@ -2,8 +2,16 @@
 
 本文件汇总最终云端运行的全部科学结果：每个问题的方法、关键数值、表格/图文件、`ctx.number` 键名、验证结论、局限与备选解释。所有数值均来自 `numbers.json`（论文中用 `\val<Key>` 引用）与 `tables` 阶段生成的 `tables/*.tex`，禁止手抄。
 
-- 最终 run：`20260912-104036-184d092`（代码 `184d092`）。
-- 阶段：ingest, validate, q1, q2, q3, q4, convergence, verification, sensitivity, extension, results, figures, tables, lint, test, paper, qa（全部 completed；qa 含 `result:*` 契约检查）。
+- 最终 run：`20260912-153103-eb858bf`（代码 `eb858bf` 及其后续文档/论文提交；v1.0.0 发布）。上一轮为 `20260912-104036-184d092`（v0.9.0）。
+- 阶段：ingest, validate, q1, q2, q3, q4, convergence, verification, sensitivity, extension, derived, results, figures, tables, lint, test, paper, qa, package, release（全部 completed；qa 含 `result:*` 契约检查）。
+- **本轮（v1.0.0，审稿意见处理）的变化**：主结果未变（t_end = 57.4805 h 与 51.0893 h，表 1–表 6 的全部数值不变）。新增/改变的是检验与交付：
+  - `convergence`：新增结果文件完整输出网格（1 s × 0.1 cm）上的误差研究（k=6,7 两级加密 + Richardson 极限），并为所有收敛表增加不受参照偏置的**三网格观测阶**（MDR-0011）。
+  - `verification`：新增问题 1 温度场的 **Duhamel 真解**对照（MDR-0012）与问题 2/3 的**区间一致性校验**（181 个共有 60 s 整点上逐位相同）。
+  - `sensitivity`：新增守恒型水分方程备选 `alt:mass_conservative`（MDR-0010，−18.71%）。
+  - `extension`：能量上限增加局部 ρ_s(C_s) 换算的变体（+26.3% vs 常数换算的 +17.3%）。
+  - `derived`：题给 R(t) 与 ρ(C) 的干物质自洽性（差 13.4%）、烘房平台噪声统计、附录 3 的初始传质 Biot 数、收缩幅度 s 的标度预测、按实测观测阶的 Richardson 外推。
+  - `results`：result3/result4 的末行延长到四位小数下全场 ≤0.1499 的首个 60 s 整点（行数 3452 / 3067）；新增补充交付 `result2_全过程.xlsx`。
+  - 审稿意见的逐条处理见 `docs/REVIEW_RESPONSE.md`。
 - 生产网格：Δr = 0.1/2⁵ = 0.003125 cm（641 节点，`\valGridNodes`、`\valGridDrCm`）；时间积分 BDF，rtol=1e-9、atol=1e-11（`\valTimeRtol`、`\valTimeAtol`），在附件 1 的每个样本时刻与附件 2 的每个节点重启（MDR-0004）。
 
 ## 统一模型（MDR-0001 … 0004）
@@ -22,7 +30,7 @@
 
 ## 问题 2（q2）
 
-- 方法一句话：附录 3 变物性（ρ、c_p、k 随 C；D 随 C、T），附件 1 逐点插值的烘房条件，0–3 h 每 1 s 输出（MDR-0005：result2 覆盖 3 h）。
+- 方法一句话：附录 3 变物性（ρ、c_p、k 随 C；D 随 C、T），附件 1 逐点插值的烘房条件，0–3 h 每 1 s 输出（MDR-0005：result2.xlsx 覆盖 3 h；全过程的温度与水分另由 `result2_全过程.xlsx` 以 60 s 分辨率交付，全过程每 1 s 的版本实测 57.3 MB，超出 20 MB 预算）。
 - 关键数值：3 h 时中心/表面温度 `\valQtwoCentreTempThreeH` / `\valQtwoSurfaceTempThreeH` °C；中心/表面/平均水分 `\valQtwoCentreMoistThreeH` / `\valQtwoSurfaceMoistThreeH` / `\valQtwoMeanMoistThreeH`，3 h 失水 `\valQtwoMoistLossPct`%；初始 D=`\valQtwoDinit`，3 h 表面 D=`\valQtwoDsurfaceThreeH` m²/s，Bi_m(3 h)=`\valQtwoBiotMassThreeH`。
 - 表：`tab_q2_temp.tex`（表 3）、`tab_q2_moist.tex`（表 4）。
 - 图：`fig_q2_profiles.pdf`（"问题 2 各半小时时刻的温度（a）与水分（b）剖面"）、`fig_q2_history.pdf`（"问题 2 温度与水分时程；温度在约 2 h 内与烘房平衡"）。

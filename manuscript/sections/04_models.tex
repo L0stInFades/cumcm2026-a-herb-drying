@@ -195,7 +195,7 @@ D=2.4\times10^{-3}\,\mathrm{e}^{-0.45/C}\,\mathrm{e}^{-3850/T_K},
 数值方法与第~\ref{subsec:fv}、\ref{subsec:time} 小节完全相同，只更换物性函数。
 
 \paragraph{交付文件的时间范围（第~\ref{subsec:ambiguity} 小节第 (e) 处解释）。}\label{subsec:q2range}
-问题 2 要求“整个烘干过程”的模型，但在“完整结果”前未像问题 1 那样写出时间上限，故有两种读法。本文的模型对两种读法是同一个：问题 2 与问题 3 是\textbf{同一个}初边值问题（附录 3 物性、固定半径）在不同积分区间上的解，校验器在两次求解共有的 $\valHorizonSharedInstants$ 个 \SI{60}{\second} 整点上实测其最大差异为 \sci{\valHorizonDiffMoist} \si{\kilo\gram\per\kilo\gram}（水分）与 \sci{\valHorizonDiffTemp} \si{\celsius}（温度），即积分容差量级。交付上：\nolinkurl{result2.xlsx} 按与表 3、表 4 一致的 $0$--\SI{3}{\hour} 每 \SI{1}{\second} 给出（$10\,800$ 行 $\times$ 两张表）；若按全过程每 \SI{1}{\second} 输出则为 $206\,940$ 行、实测 \SI{57.3}{\mega\byte}，超出提交与支撑材料的规模预算，因此另行交付 \texttt{result2\_全过程.xlsx}——同一模板、同样的“温度”“水分浓度”两张表、覆盖 $0$--$t_{\mathrm{end}}$、分辨率 \SI{60}{\second}（即题目在问题 3、4 中对全过程所采用的分辨率）。两种读法都有对应的交付物（MDR-0005）。
+问题 2 要求“整个烘干过程”的模型，但在“完整结果”前未像问题 1 那样写出时间上限，故有两种读法。本文的模型对两种读法是同一个：问题 2 与问题 3 是\textbf{同一个}初边值问题（附录 3 物性、固定半径）在不同积分区间上的解，校验器在两次求解共有的 $\valHorizonSharedInstants$ 个 \SI{60}{\second} 整点上实测其最大差异为 \sci{\valHorizonDiffMoist} \si{\kilo\gram\per\kilo\gram}（水分）与 \sci{\valHorizonDiffTemp} \si{\celsius}（温度），即积分容差量级。交付上：\nolinkurl{result2.xlsx} 按与表 3、表 4 一致的 $0$--\SI{3}{\hour} 每 \SI{1}{\second} 给出（$10\,800$ 行 $\times$ 两张表）；若按全过程每 \SI{1}{\second} 输出则为 $206\,940$ 行、实测 \SI{57.3}{\mega\byte}，超出提交与支撑材料的规模预算，因此另行交付 \cjkfile{result2\_全过程.xlsx}——同一模板、同样的“温度”“水分浓度”两张表、覆盖 $0$--$t_{\mathrm{end}}$、分辨率 \SI{60}{\second}（即题目在问题 3、4 中对全过程所采用的分辨率）。两种读法都有对应的交付物（MDR-0005）。
 
 \subsection{结果与分析}
 
@@ -251,7 +251,7 @@ t_{\mathrm{end}}=\inf\Bigl\{t>0:\ \max_{0\le r\le R_0}C(r,t)<C^\ast\Bigr\},\qqua
 \subsection{收缩域上的方程：物质坐标表述}
 \label{subsec:q4model}
 
-问题 4 中计算域 $0<r<R(t)$ 随附件 2 给出的 $R(t)$ 收缩（$\SI{2.000}{\centi\meter}\to\SI{1.198}{\centi\meter}$，主要发生在前 \SI{12}{\hour}，图~\ref{fig:chamber}(c)）。附件 2 只给出几何，未说明被边界“扫过”的物质如何处理，因此必须补充一条物理原则。本文采用\textbf{干物质守恒}（假设~\ref{as:shrink}）：收缩是均匀的，每个物质点的径向坐标与 $R(t)$ 成比例，于是 $\xi=r/R(t)$ 是\textbf{物质坐标}（Lagrangian 坐标，Landau 变换\cite{landau1950,crank1984}）。
+问题 4 中计算域 $0<r<R(t)$ 随附件 2 给出的 $R(t)$ 收缩（$\SI{2.000}{\centi\meter}\to\SI{1.198}{\centi\meter}$，主要发生在前 \SI{12}{\hour}，图~\ref{fig:chamber}(c)，附录~\ref{app:figures}）。附件 2 只给出几何，未说明被边界“扫过”的物质如何处理，因此必须补充一条物理原则。本文采用\textbf{干物质守恒}（假设~\ref{as:shrink}）：收缩是均匀的，每个物质点的径向坐标与 $R(t)$ 成比例，于是 $\xi=r/R(t)$ 是\textbf{物质坐标}（Lagrangian 坐标，Landau 变换\cite{landau1950,crank1984}）。
 
 \begin{proposition}[物质坐标下的方程]\label{prop:landau}
 在均匀收缩与干物质守恒的假设下，以 $\xi=r/R(t)$ 为自变量、$\hat C(\xi,t)=C(R(t)\xi,t)$，有
@@ -280,7 +280,6 @@ t_{\mathrm{end}}=\inf\Bigl\{t>0:\ \max_{0\le r\le R_0}C(r,t)<C^\ast\Bigr\},\qqua
 \end{equation}
 此时水分总量的变化等于表面通量积分再加上 $C_sR\dot R$ 一项——被退缩的边界扫出计算域的水分被“丢弃”，总量不守恒（校验器测得这一伪损失占总失水的三成以上）。因此本文以\eqref{eq:lagrangian} 为主模型，把\eqref{eq:eulerian} 的结果作为对照（表~\ref{tab:alternatives}、表~\ref{tab:q4-moist-alt}）。
 
-\paperfigure{fig_chamber.pdf}{边界数据：附件 1 的烘房温度（a）与水分浓度（b）及恒温干燥阶段的平台值（末 \SI{1}{\hour} 样本均值，假设~\ref{as:chamber}）；附件 2 的半径样本与保单调 PCHIP 插值 $R(t)$（c，为清晰起见每 \SI{2}{\hour} 标一个样本点）。}{fig:chamber}
 
 \paragraph{实现。} 第~\ref{subsec:fv} 小节的离散本来就写在 $\xi$ 上，因此只需把常数 $R_0^2$ 换成 $R^2(t)$（Lagrangian）或再加上\eqref{eq:eulerian} 的对流项（Eulerian，界面用中心差分、表面用三点单侧差分）。$R(t)$ 由附件 2 的样本作保单调 PCHIP 插值\cite{fritsch1980}（保证 $R$ 不出现非物理的回升），\SI{72}{\hour} 之后保持末值。物性改用附录 4 的式~\eqref{eq:app4}：
 \begin{equation}

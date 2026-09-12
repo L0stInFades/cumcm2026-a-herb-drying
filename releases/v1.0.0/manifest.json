@@ -1,0 +1,145 @@
+{
+  "schema": "forge.manifest/1",
+  "run_id": "20260912-153103-eb858bf",
+  "stage": "release",
+  "status": "completed",
+  "started_at": "2026-09-12T08:19:36+00:00",
+  "finished_at": "2026-09-12T08:19:36+00:00",
+  "duration_s": 0.0,
+  "code_ref": {
+    "git_sha": "fe6f6aa43bbeda58e6102875ebb816b2ea34c453",
+    "branch": "main",
+    "dirty": true,
+    "code_digest": "6400216966758c56272ee982ce03d132f59f9961b6bcbad555d372219f7ee486",
+    "files": 107
+  },
+  "params": {
+    "code_ref": {
+      "git_sha": "fe6f6aa43bbeda58e6102875ebb816b2ea34c453",
+      "branch": "main",
+      "dirty": true
+    },
+    "size": "medium",
+    "submitted_at": "2026-09-12T16:17:55",
+    "stages": [
+      "paper",
+      "qa",
+      "package",
+      "release"
+    ]
+  },
+  "config_digest": "717f539aa1b3127805946c3cea3169d85986087e290d30e8b504a94c4a17ec47",
+  "deps": {
+    "package": "b0ac49e0b5e5039892574994db283c147b4d8b429154b29b0fd1f3976635e2b0"
+  },
+  "inputs": {
+    "A题.pdf": {
+      "sha256": "052d8014bff5727c019b72e44fdffaf5c145ce04050dd938baaf3527db331736",
+      "bytes": 553320
+    },
+    "附件/附件1.xlsx": {
+      "sha256": "7ef32870abeef420b89560b2530ff60dfe4255917805151d89988d0311af9dd7",
+      "bytes": 16586
+    },
+    "附件/附件2.xlsx": {
+      "sha256": "5563acbfa4b4afb10cc6c03e2207e5369bf39da27576672aff14cc5c32e704af",
+      "bytes": 11485
+    },
+    "附件/附件3/result1.xlsx": {
+      "sha256": "23b261b295c1b787d000eebbca6521c37075107b6fcf78724f8d395ce1798ff4",
+      "bytes": 10073
+    },
+    "附件/附件3/result2.xlsx": {
+      "sha256": "23b261b295c1b787d000eebbca6521c37075107b6fcf78724f8d395ce1798ff4",
+      "bytes": 10073
+    },
+    "附件/附件3/result3.xlsx": {
+      "sha256": "07e4793d620a7f899804c0298d49a16a197960440fd47f8bb780c57ec27e2859",
+      "bytes": 9345
+    },
+    "附件/附件3/result4.xlsx": {
+      "sha256": "86e9300ffa3d30c43de895ea6723da943e85b8740b137bcae5af7107f076eeac",
+      "bytes": 9351
+    }
+  },
+  "outputs": {
+    "AI工具使用详情.pdf": {
+      "sha256": "875f89acba8dd8b5aeba5bd886508bd6bd7cf786dcf05970166afd8e01acaaf9",
+      "bytes": 105657
+    },
+    "RELEASE_NOTES.md": {
+      "sha256": "39f46419564dd7af9b08f6b6e23bd8da847306952df2aecf374290358f2020cf",
+      "bytes": 950
+    },
+    "release_manifest.json": {
+      "sha256": "46f7cb1ebb34e4679923c1215fc036c193ab2ce98faf7bd0bc773d9a2f5f55da",
+      "bytes": 1352
+    },
+    "result1.xlsx": {
+      "sha256": "ebe8f72921a4c2b8f8e03ef6ece154dca3413bf5dd383dc42ed857a25cbb5809",
+      "bytes": 379180
+    },
+    "result2.xlsx": {
+      "sha256": "deae9e44dce397ac8ac0cae155e9b430359bd6bc19ef52bb4f1119b92c07e43c",
+      "bytes": 2366832
+    },
+    "result2_全过程.xlsx": {
+      "sha256": "6f953b1ae6da628f3334fd54aefe81cb6f13004342ae6e2df0bd7b53a8c049cc",
+      "bytes": 548681
+    },
+    "result3.xlsx": {
+      "sha256": "0b38a7a3f70c1e2809747d86ac829564124c1f5995100a47fd111df98b8c24fc",
+      "bytes": 352958
+    },
+    "result4.xlsx": {
+      "sha256": "a2c306c9e75e71cb5f3fe68c43e11341d0232bd78fdef086944d71e152b342ca",
+      "bytes": 239016
+    },
+    "支撑材料.zip": {
+      "sha256": "3cb1dea504cdb4136f24d57eb2cc29c7e3c29188f6f26bb0e7ac56ef9def5250",
+      "bytes": 13483899
+    },
+    "论文.pdf": {
+      "sha256": "51c042bcef765f7dbdc109f75ef5e654803891b38e0ee2472c37fbc00a5c06e9",
+      "bytes": 1910170
+    }
+  },
+  "outputs_digest": "f976f1c58cd21a565e9bc36bd17ef5839a4ce88002b6e0a0183c84b1f0b4556e",
+  "metrics": {
+    "files": 8,
+    "paper_bytes": 1910170
+  },
+  "runtime": {
+    "python": "3.11.12",
+    "platform": "Linux-4.19.0-gvisor-x86_64-with-glibc2.36",
+    "cpu_count": 24,
+    "modal_task_id": "ta-01M2AB3VAFW49FHCQX634ZB2VR",
+    "modal_is_remote": true,
+    "packages": {
+      "numpy": "2.2.6",
+      "scipy": "1.15.3",
+      "pandas": "2.2.3",
+      "pyarrow": "20.0.0",
+      "openpyxl": "3.1.5",
+      "matplotlib": "3.10.3",
+      "scikit-learn": "1.6.1",
+      "statsmodels": "0.14.4",
+      "ortools": "9.12.4544",
+      "highspy": "1.10.0",
+      "numba": "0.61.2",
+      "cvxpy": "1.6.5",
+      "networkx": "3.4.2",
+      "pymupdf": "1.26.7",
+      "pytest": "8.3.5",
+      "hypothesis": "6.131.9",
+      "ruff": "0.11.10",
+      "mypy": "1.15.0"
+    },
+    "env": {
+      "OMP_NUM_THREADS": "8",
+      "OPENBLAS_NUM_THREADS": "8",
+      "PYTHONHASHSEED": "0"
+    }
+  },
+  "error": null
+}

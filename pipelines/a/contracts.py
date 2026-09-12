@@ -26,7 +26,7 @@ INPUT_CONTRACTS: dict[str, FrameContract] = {
 }
 
 _RADIAL = 22  # A1 label + 21 distances 0.0 … 2.0 (step 0.1 cm)
-_HEADER = [0.0, 0.5, 1.0, 1.5, 2.0]  # checked positions of the first row (every 0.5 cm of the 0.1 cm grid)
+_HEADER = [0.0, 0.5, 1.0, 1.5, 2.0]  # first-row distances checked at columns B, G, L, Q, V (A1 is the label)
 WHOLE_PROCESS_FILE = "result2_全过程.xlsx"  # supplementary deliverable, whole process at 60 s (MDR-0005)
 
 
@@ -38,7 +38,7 @@ def _sheet(name: str, step: float, **kw: object) -> SheetContract:
         numeric_from_col=0,
         first_col_step=step,
         header_values=tuple(_HEADER),
-        header_value_columns=(0, 5, 10, 15, 20),
+        header_value_columns=(1, 6, 11, 16, 21),
         **kw,  # type: ignore[arg-type]
     )
 
