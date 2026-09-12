@@ -52,3 +52,20 @@ python3 tools/cli.py release --version v1.0.0       # 交付物到 releases/v1.0
 - 禁止在本地运行任何数据处理或排版命令；禁止手工修改 `artifacts/`、`releases/` 中的产物。
 - 禁止在 `.tex` 中手写结果数字。
 - 禁止提交凭证、`artifacts/`、`__pycache__`。
+
+## 本地运行（不需要 Modal 账号）
+
+论文所报告的全部数值由上述云端流程产生；`tools/run_local.py` 提供同一批阶段函数的本地入口，
+供没有云端账号的读者复现结构与流程：
+
+```bash
+pip install pandas numpy scipy openpyxl pyarrow matplotlib
+python3 tools/run_local.py --quick                      # 缩减预算，全链路 --quick 约数分钟；生产网格 refine=5 需数小时
+python3 tools/run_local.py --stages ingest,validate,q1 --out /tmp/x   # 约 6 s（--quick，refine=3）
+python3 tools/run_local.py                              # 默认预算
+```
+
+它调用的是同一个 `forge.runner.execute`、同一批 `@stage` 函数，只把云端卷换成本地目录
+（默认 `./local_runs/<run_id>/`），因此每个阶段仍写出 `manifest.json` 与 `events.jsonl`。
+排版阶段（`paper`/`qa`/`package`/`release`）需要 TeX Live 与中文字体，不在默认序列中。
+`--quick` 会降低求解预算或网格精度，结构与流程一致，末位数字与论文不同。
